@@ -227,15 +227,16 @@ app.post(
       const transcript = body.transcript || {};
 
       const paidUser = authUser(req);
-      if (!paidUser) {
+      const devPay = String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
+      if (!paidUser && !devPay) {
         return res.status(401).json({
           error: 'Login required',
           error_ru: 'Войдите в аккаунт, чтобы запускать анализ',
           code: 'AUTH'
         });
       }
-      const bal = Number(paidUser.coins) || 0;
-      if (bal < COINS_PER_ANALYSIS) {
+      const bal = paidUser ? (Number(paidUser.coins) || 0) : 999;
+      if (paidUser && bal < COINS_PER_ANALYSIS) {
         return res.status(402).json({
           error: 'Not enough coins',
           error_ru: 'Нужно ' + COINS_PER_ANALYSIS + ' монет. На балансе: ' + bal,
@@ -350,6 +351,8 @@ low = P3 (полировка)
   ]
 }
 Ровно 6–8 tips. t из переданных кадров или ближайшее. Язык: русский.
+Запрети копипаст: каждый tip про РАЗНУЮ проблему. Не пиши один и тот же текст про «мало движения» на несколько таймкодов.
+Если движение реально слабое — один tip на самый слабый участок + конкретный приём под ЖАНР и речь из transcript.
 КРИТИЧНО: advice не короче ~3 предложений. Одна короткая строка = плохой ответ. Сначала наблюдение по кадру, потом правка.
 
 ВРЕМЕННАЯ СВЯЗНОСТЬ (очень важно):
@@ -467,10 +470,16 @@ JSON only.`;
       const tips = Array.isArray(parsed.tips) ? parsed.tips : [];
       const order = { high: 0, mid: 1, low: 2 };
       const sorted = tips.slice().sort((a, b) => (order[a.priority] ?? 1) - (order[b.priority] ?? 1));
-      const after = updateUser(paidUser.email, (u) => {
-        u.coins = Math.max(0, (Number(u.coins) || 0) - COINS_PER_ANALYSIS);
-        u.analysesUsed = (u.analysesUsed || 0) + 1;
-      });
+      let coinsLeft = null;
+      let charged = 0;
+      if (paidUser) {
+        const after = updateUser(paidUser.email, (u) => {
+          u.coins = Math.max(0, (Number(u.coins) || 0) - COINS_PER_ANALYSIS);
+          u.analysesUsed = (u.analysesUsed || 0) + 1;
+        });
+        coinsLeft = after ? after.coins : bal - COINS_PER_ANALYSIS;
+        charged = COINS_PER_ANALYSIS;
+      }
       res.json({
         overall_comment: parsed.overall_comment || '',
         genre: parsed.genre || '',
@@ -478,12 +487,15 @@ JSON only.`;
           t: Number(tip.t) || 0,
           title: String(tip.title || '').slice(0, 140),
           advice: String(tip.advice || '').slice(0, 1600),
+          text: [tip.title, tip.advice].filter(Boolean).join('. ').slice(0, 1700),
+          key: String(tip.severity || tip.key || 'pacing').slice(0, 32),
           severity: String(tip.severity || 'pacing').slice(0, 32),
           priority: String(tip.priority || 'mid').slice(0, 8)
         })),
         engine: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
-        coinsLeft: after ? after.coins : bal - COINS_PER_ANALYSIS,
-        charged: COINS_PER_ANALYSIS
+        coinsLeft,
+        charged,
+        guest: !paidUser
       });
     } catch (err) {
       const msg = err?.message || String(err);
