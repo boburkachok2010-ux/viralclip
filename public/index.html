@@ -93,6 +93,26 @@
   .price-card ul{margin:12px 0 18px;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.55;}
   .price-card button{width:100%;}
   .pack-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;justify-content:center;}
+  .account-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;margin-top:24px;}
+  @media(max-width:900px){.account-grid{grid-template-columns:1fr;}}
+  .account-card{border:1px solid var(--line);border-radius:20px;padding:22px;background:rgba(255,255,255,0.02);}
+  .account-card label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px;font-family:'JetBrains Mono',monospace;}
+  .account-card input,.account-card textarea,.account-card select{
+    width:100%;background:rgba(0,0,0,0.35);border:1px solid var(--line);border-radius:12px;
+    color:var(--text);padding:12px 14px;font-size:14px;font-family:inherit;
+  }
+  .account-card textarea{min-height:100px;resize:vertical;}
+  .acc-score-big{font-size:48px;font-weight:700;line-height:1;}
+  .acc-bars{display:grid;gap:8px;margin-top:14px;}
+  .acc-bar-row{display:grid;grid-template-columns:110px 1fr 36px;gap:8px;align-items:center;font-size:12px;}
+  .acc-bar-track{height:6px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;}
+  .acc-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+  .acc-list{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.55;}
+  .acc-action{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px;background:rgba(0,0,0,0.2);}
+  .acc-action h4{margin:0 0 4px;font-size:14px;}
+  .acc-action p{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  .badge-studio{display:inline-block;font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid rgba(255,59,92,0.5);color:var(--accent);margin-left:8px;vertical-align:middle;}
+
 
   .lang-toggle{
     background:none;border:1px solid var(--line-strong);color:var(--muted);
@@ -575,6 +595,7 @@
   <div class="nav-links">
     <a href="#analyzer" data-i18n="nav_analyze">Analyze</a>
 <a href="#scores" data-i18n="nav_scoring">Scoring</a>
+    <a href="#account-audit" data-i18n="nav_account_audit">IG Account</a>
     <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
 </div>
   <div class="nav-right">
@@ -800,6 +821,56 @@
 </section>
 
 
+
+<section class="wrap" id="account-audit" style="padding-top:80px;padding-bottom:40px;">
+  <span class="kicker reveal" data-i18n="acc_kicker">Premium · Studio</span>
+  <h2 class="reveal" data-i18n="acc_h2" style="max-width:720px;">Instagram account audit</h2>
+  <p class="reveal" data-i18n="acc_p" style="color:var(--muted);max-width:640px;margin-top:10px;">
+    Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Included in Studio ($24). Video analysis stays free-to-test for everyone.
+  </p>
+  <div class="account-grid reveal">
+    <div class="account-card">
+      <label data-i18n="acc_user">Instagram username</label>
+      <input id="accUser" placeholder="@username" autocomplete="off" />
+      <label data-i18n="acc_niche">Niche</label>
+      <input id="accNiche" placeholder="e.g. fitness coach / IELTS / local cafe" />
+      <label data-i18n="acc_goal">Goal</label>
+      <input id="accGoal" placeholder="followers / leads / sales / personal brand" />
+      <label data-i18n="acc_bio">Bio (paste current)</label>
+      <textarea id="accBio" placeholder="Your current Instagram bio..."></textarea>
+      <label data-i18n="acc_stats">Stats (optional)</label>
+      <input id="accStats" placeholder="12k followers · avg Reels 3k views · ER ~2%" />
+      <label data-i18n="acc_posts">Recent posts / Reels (links or short notes)</label>
+      <textarea id="accPosts" placeholder="1) Reel about X — weak hook&#10;2) https://instagram.com/reel/...&#10;3) Carousel tips — good saves"></textarea>
+      <button type="button" class="btn-primary magnetic" id="accAnalyzeBtn" style="margin-top:18px;width:100%;border:none;" data-i18n="acc_btn">Run account audit</button>
+      <p id="accHint" style="margin-top:10px;font-size:12px;color:var(--muted);" data-i18n="acc_hint">Studio plan or dev mode. Does not replace video frame analysis.</p>
+    </div>
+    <div class="account-card" id="accResults" style="display:none;">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:12px;color:var(--muted);" data-i18n="acc_score_label">Account score</div>
+          <div class="acc-score-big" id="accScoreNum">—</div>
+        </div>
+        <div id="accUserLabel" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent-2);"></div>
+      </div>
+      <p id="accSummary" style="margin-top:14px;font-size:14px;line-height:1.55;color:var(--text);"></p>
+      <div class="acc-bars" id="accBars"></div>
+      <h3 style="margin:20px 0 0;font-size:15px;" data-i18n="acc_strengths">Strengths</h3>
+      <ul class="acc-list" id="accStrengths"></ul>
+      <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_weak">Weaknesses</h3>
+      <ul class="acc-list" id="accWeak"></ul>
+      <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_actions">Priority actions</h3>
+      <div id="accActions"></div>
+      <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_bio_new">Bio rewrite</h3>
+      <p id="accBioNew" style="font-size:13.5px;color:var(--muted);line-height:1.5;"></p>
+      <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_pillars">Suggested pillars</h3>
+      <p id="accPillars" style="font-size:13.5px;color:var(--muted);"></p>
+      <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_week">7-day plan</h3>
+      <ol class="acc-list" id="accWeek"></ol>
+    </div>
+  </div>
+</section>
+
 <section class="wrap" id="pricing" style="padding-top:80px;padding-bottom:40px;">
   <span class="kicker reveal" data-i18n="pricing_kicker">Pricing</span>
   <h2 class="reveal" data-i18n="pricing_h2" style="max-width:640px;">Coins & plans</h2>
@@ -830,9 +901,9 @@
       <h3>Studio</h3>
       <div class="amt">$24 <span>/ mo</span></div>
       <ul>
-        <li>350 coins / month (~35 audits)</li>
-        <li>PDF reports</li>
-        <li>Best for agencies</li>
+        <li>350 coins / month (~35 video audits)</li>
+        <li><strong>Instagram account audit</strong> (premium)</li>
+        <li>PDF-ready insights · agencies</li>
         <li>Priority processing</li>
       </ul>
       <button type="button" class="btn-ghost magnetic" data-buy="studio">Choose Studio</button>
@@ -935,6 +1006,15 @@
       demo_cta:'Audit your clip →',
       founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wish someone had handed me back then — built by a creator, not a committee."',
       founder_attr:'— Founder, ViralClip',
+      nav_account_audit:'IG Account',
+      acc_kicker:'Premium · Studio', acc_h2:'Instagram account audit',
+      acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Included in Studio ($24). Video analysis stays available for testing.',
+      acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (paste current)',
+      acc_stats:'Stats (optional)', acc_posts:'Recent posts / Reels (links or short notes)',
+      acc_btn:'Run account audit', acc_hint:'Studio plan or dev mode. Does not replace video frame analysis.',
+      acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
+      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
+      acc_running:'Auditing account…', acc_err:'Account audit failed',
       pricing_kicker:'Pricing', pricing_h2:'Pay per audit, or go unlimited.', pricing_p:'New accounts start with 30 free coins. One analysis costs 10.',
       tab_coins:'Coin packs', tab_sub:'Subscription',
       pack1_name:'Starter pack', pack1_amt:'/ 50 coins', pack1_f1:'5 full audits', pack_f2:'Score breakdown by metric', pack1_f3:'No expiry', pack1_btn:'Buy 50 coins',
@@ -1026,6 +1106,15 @@
       demo_cta:'Разобрать свой клип →',
       founder_quote:'«Я монтирую чужие каналы с четырнадцати лет. ViralClip — инструмент, который я хотел бы иметь тогда — сделан автором для авторов, а не комитетом».',
       founder_attr:'— Основатель ViralClip',
+      nav_account_audit:'IG аккаунт',
+      acc_kicker:'Премиум · Studio', acc_h2:'Аудит Instagram-аккаунта',
+      acc_p:'Не один ролик — весь профиль: bio, столпы контента, паттерн хуков, сетка, CTA. Входит в Studio ($24). Разбор видео по кадрам остаётся отдельно.',
+      acc_user:'Ник Instagram', acc_niche:'Ниша', acc_goal:'Цель', acc_bio:'Bio (вставьте текущий)',
+      acc_stats:'Статистика (необязательно)', acc_posts:'Последние посты / Reels (ссылки или заметки)',
+      acc_btn:'Запустить аудит аккаунта', acc_hint:'Тариф Studio или режим теста. Не заменяет покадровый разбор видео.',
+      acc_score_label:'Оценка аккаунта', acc_strengths:'Сильные стороны', acc_weak:'Слабые стороны',
+      acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_week:'План на 7 дней',
+      acc_running:'Анализируем аккаунт…', acc_err:'Не удалось сделать аудит аккаунта',
       pricing_kicker:'Тарифы', pricing_h2:'Платите за аудит — или берите безлимит.', pricing_p:'Новый аккаунт получает 30 монет бесплатно. Один анализ стоит 10.',
       tab_coins:'Пакеты монет', tab_sub:'Подписка',
       pack1_name:'Стартовый пакет', pack1_amt:'/ 50 монет', pack1_f1:'5 полных аудитов', pack_f2:'Разбор по метрикам', pack1_f3:'Без срока действия', pack1_btn:'Купить 50 монет',
@@ -1376,9 +1465,11 @@
     if(u && u.email){
       btn.textContent = (u.name || u.email.split('@')[0]) + ' · ' + (LANG==='ru' ? 'Выйти' : 'Log out');
       btn.setAttribute('data-logged', '1');
+      if(typeof setCoinBadge==='function' && u.coins != null) setCoinBadge(u.coins);
     } else {
       btn.textContent = (I18N[LANG] && I18N[LANG].nav_account) || (LANG==='ru'?'Войти':'Log in');
       btn.setAttribute('data-logged', '0');
+      if(typeof setCoinBadge==='function') setCoinBadge(null);
     }
   }
   var authBtn = document.getElementById('authBtn');
@@ -2484,32 +2575,37 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
       return out;
     }
 
-    // 1) Always start with local screenshot cards
-    issues = buildLocalWeakIssues();
-
-    // 2) Prefer AI tips when available (replace local)
+    // Prefer real AI tips; local templates only if AI empty
+    issues = [];
     if(aiPack && aiPack.tips && aiPack.tips.length){
       issues = aiPack.tips.map(function(tip){
-        var t = tip.t || 0;
+        var t = Number(tip.t) || 0;
         var fr = tip.frame || nearestFrame(appState.frames, t);
-        var txt = tip.text || '';
-        // shorten repetitive endings
+        var txt = (tip.advice || tip.text || '').trim();
+        if(tip.title && txt && txt.indexOf(tip.title) !== 0){
+          txt = tip.title.replace(/[.!?\s]+$/, '') + '. ' + txt;
+        } else if(!txt && tip.title){
+          txt = tip.title;
+        }
         txt = txt.replace(/\s*Это (сделает|поможет|повысит|улучшит)[^.]*\.\s*$/gi, '');
         txt = txt.replace(/\s*This will (make|help|improve|increase)[^.]*\.\s*$/gi, '');
+        var key = tip.key || tip.severity || 'pacing';
         return {
-          key: tip.key || 'pacing',
-          score: tip.score || 50,
+          key: key,
+          score: tip.score || (tip.priority === 'high' ? 40 : 55),
           t: t,
           text: txt,
           frame: fr,
-          resources: tip.resources && tip.resources.length ? tip.resources : pickResources(tip.key, txt),
+          resources: tip.resources && tip.resources.length ? tip.resources : pickResources(key, txt),
           priority: tip.priority || 'mid'
         };
-      });
-      // sort by time on timeline
+      }).filter(function(x){ return x.text && x.text.length > 12; });
       issues.sort(function(a,b){ return (a.t||0) - (b.t||0); });
     }
-
+    if(!issues.length){
+      issues = buildLocalWeakIssues();
+      console.warn('AI tips empty — showing local motion fallback');
+    }
 
     // Reconcile metric scores with AI tip priorities (avoid 98 hook + "weak hook")
     if(aiPack && aiPack.tips && aiPack.tips.length){
@@ -3174,7 +3270,7 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
   function authHeaders(){
     var h = { 'Content-Type': 'application/json' };
     try {
-      var t = localStorage.getItem('vc_token');
+      var t = localStorage.getItem('viralclip_token');
       if(t) h['Authorization'] = 'Bearer ' + t;
     } catch(e){}
     return h;
@@ -3188,13 +3284,13 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
   }
   async function refreshAccount(){
     try {
-      var t = localStorage.getItem('vc_token');
+      var t = localStorage.getItem('viralclip_token');
       if(!t){ setCoinBadge(null); return null; }
       var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/auth/me', { headers: authHeaders() });
       var js = await res.json().catch(function(){return {};});
       if(!res.ok){ setCoinBadge(null); return null; }
       if(js.user){
-        try { localStorage.setItem('vc_user', JSON.stringify(js.user)); } catch(e){}
+        try { localStorage.setItem('viralclip_user', JSON.stringify(js.user)); } catch(e){}
         setCoinBadge(js.user.coins);
         if(typeof updateAuthUi === 'function') updateAuthUi();
       }
@@ -3203,7 +3299,7 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
   }
   async function startCheckout(productId){
     var t = null;
-    try { t = localStorage.getItem('vc_token'); } catch(e){}
+    try { t = localStorage.getItem('viralclip_token'); } catch(e){}
     if(!t){
       showToast(LANG==='ru'?'Сначала войдите в аккаунт':(LANG==='uz'?'Avval kiring':'Log in first'));
       var b = document.getElementById('authBtn'); if(b) b.click();
@@ -3245,6 +3341,111 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
     }
   } catch(e){}
   setTimeout(function(){ refreshAccount(); }, 400);
+
+  
+  /* ===== Instagram account audit ===== */
+  (function(){
+    var btn = document.getElementById('accAnalyzeBtn');
+    if(!btn) return;
+    function t(key, fallback){
+      try {
+        var pack = I18N[LANG] || I18N.en || {};
+        return pack[key] || fallback || key;
+      } catch(e){ return fallback || key; }
+    }
+    function barRow(label, val){
+      val = Math.max(0, Math.min(100, Number(val) || 0));
+      return '<div class="acc-bar-row"><span>'+label+'</span><div class="acc-bar-track"><div class="acc-bar-fill" style="width:'+val+'%"></div></div><span>'+val+'</span></div>';
+    }
+    btn.addEventListener('click', async function(){
+      var username = (document.getElementById('accUser')||{}).value || '';
+      var niche = (document.getElementById('accNiche')||{}).value || '';
+      var goal = (document.getElementById('accGoal')||{}).value || '';
+      var bio = (document.getElementById('accBio')||{}).value || '';
+      var stats = (document.getElementById('accStats')||{}).value || '';
+      var posts = (document.getElementById('accPosts')||{}).value || '';
+      if(!username.trim() && !posts.trim() && !bio.trim()){
+        showToast(LANG==='ru' ? 'Укажите @username или описание постов' : 'Enter @username or post notes');
+        return;
+      }
+      btn.disabled = true;
+      var old = btn.textContent;
+      btn.textContent = t('acc_running', 'Auditing…');
+      try {
+        var headers = { 'Content-Type': 'application/json' };
+        try {
+          var tok = localStorage.getItem('viralclip_token');
+          if(tok) headers['Authorization'] = 'Bearer ' + tok;
+        } catch(e){}
+        var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/account-audit', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            username: username,
+            niche: niche,
+            goal: goal,
+            bio: bio,
+            stats: stats,
+            posts: posts,
+            language: (typeof LANG!=='undefined'?LANG:'ru')
+          })
+        });
+        var js = await res.json().catch(function(){return {};});
+        if(!res.ok){
+          throw new Error(js.error_ru || js.error || t('acc_err','Failed'));
+        }
+        var box = document.getElementById('accResults');
+        if(box) box.style.display = 'block';
+        var sn = document.getElementById('accScoreNum');
+        if(sn) sn.textContent = (js.overall_score != null ? js.overall_score : '—');
+        var ul = document.getElementById('accUserLabel');
+        if(ul) ul.textContent = js.username ? ('@'+js.username) : '';
+        var sum = document.getElementById('accSummary');
+        if(sum) sum.textContent = js.summary || '';
+        var sc = js.scores || {};
+        var bars = document.getElementById('accBars');
+        if(bars){
+          bars.innerHTML = [
+            barRow('Position', sc.positioning),
+            barRow('Pillars', sc.content_pillars),
+            barRow('Hooks', sc.hooks_pattern),
+            barRow('Rhythm', sc.posting_rhythm),
+            barRow('Grid', sc.visual_grid),
+            barRow('CTA', sc.cta_funnel),
+            barRow('Unique', sc.differentiation)
+          ].join('');
+        }
+        function fillList(id, arr){
+          var el = document.getElementById(id);
+          if(!el) return;
+          el.innerHTML = (arr||[]).map(function(x){ return '<li>'+String(x).replace(/</g,'&lt;')+'</li>'; }).join('') || '<li>—</li>';
+        }
+        fillList('accStrengths', js.strengths);
+        fillList('accWeak', js.weaknesses);
+        var act = document.getElementById('accActions');
+        if(act){
+          act.innerHTML = (js.actions||[]).map(function(a){
+            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div>';
+          }).join('') || '<p style="color:var(--muted)">—</p>';
+        }
+        var bn = document.getElementById('accBioNew');
+        if(bn) bn.textContent = js.bio_rewrite || '—';
+        var pl = document.getElementById('accPillars');
+        if(pl) pl.textContent = (js.pillars||[]).join(' · ') || '—';
+        var week = document.getElementById('accWeek');
+        if(week){
+          week.innerHTML = (js.plan7||[]).map(function(x){ return '<li>'+String(x).replace(/</g,'&lt;')+'</li>'; }).join('') || '<li>—</li>';
+        }
+        box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        showToast(LANG==='ru' ? '✓ Аудит аккаунта готов' : '✓ Account audit ready');
+      } catch(err){
+        showToast(String(err.message||err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
+      }
+    });
+  })();
 
   /* ============ Language toggle ============ */
   document.getElementById('langToggle').addEventListener('click', function(){

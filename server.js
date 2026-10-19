@@ -540,8 +540,15 @@ function hashPassword(password, salt) {
   return { salt, hash };
 }
 function verifyPassword(password, salt, hash) {
-  const h = crypto.scryptSync(String(password), salt, 32).toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(h, 'hex'), Buffer.from(hash, 'hex'));
+  try {
+    const h = crypto.scryptSync(String(password), String(salt), 32).toString('hex');
+    const a = Buffer.from(h, 'hex');
+    const b = Buffer.from(String(hash), 'hex');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET || OPENAI_API_KEY || 'viralclip-dev-secret';
@@ -579,7 +586,7 @@ const PRODUCTS = {
   pack400: { kind: 'pack', coins: 400, amountUsd: 35, name: 'Studio pack 400 coins' },
   starter: { kind: 'sub',  coins: 100, amountUsd: 10, name: 'Starter monthly', interval: 'month' },
   pro:     { kind: 'sub',  coins: 200, amountUsd: 16, name: 'Pro monthly', interval: 'month' },
-  studio:  { kind: 'sub',  coins: 350, amountUsd: 24, name: 'Studio monthly', interval: 'month' }
+  studio:  { kind: 'sub',  coins: 350, amountUsd: 24, name: 'Studio monthly + Instagram account audit', interval: 'month' }
 };
 
 function publicUser(u) {
@@ -841,6 +848,128 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), (req
     console.error('[webhook] handler', e);
   }
   res.json({ received: true });
+});
+
+
+
+// ----- Instagram / account audit (Studio premium) -----
+app.post('/api/account-audit', async (req, res) => {
+  try {
+    if (!hasKey()) {
+      return res.status(503).json({
+        error: 'OPENAI_API_KEY missing',
+        error_ru: 'Нет OPENAI_API_KEY на сервере'
+      });
+    }
+    const user = authUser(req);
+    const devPay = String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
+    const plan = (user && user.plan) || 'free';
+    const allowed = devPay || plan === 'studio';
+    if (!allowed) {
+      return res.status(403).json({
+        error: 'Studio plan required',
+        error_ru: 'Анализ аккаунта доступен на тарифе Studio ($24). Или включите ALLOW_DEV_PAYMENTS=1 для тестов.',
+        code: 'PLAN'
+      });
+    }
+
+    const body = req.body || {};
+    const username = String(body.username || '').replace(/^@/, '').trim().slice(0, 64);
+    const niche = String(body.niche || '').trim().slice(0, 120);
+    const goal = String(body.goal || '').trim().slice(0, 200);
+    const bio = String(body.bio || '').trim().slice(0, 500);
+    const stats = String(body.stats || '').trim().slice(0, 400);
+    const posts = String(body.posts || '').trim().slice(0, 2500);
+    const language = body.language === 'en' ? 'en' : (body.language === 'uz' ? 'uz' : 'ru');
+    if (!username && !posts && !bio) {
+      return res.status(400).json({
+        error: 'Provide username or post descriptions',
+        error_ru: 'Укажите @username или описание постов'
+      });
+    }
+
+    const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
+    const system = `You are a senior Instagram growth strategist and short-form content director (Reels-first).
+You audit CREATOR ACCOUNTS, not a single video. Be specific, honest, no fake view guarantees.
+Output JSON only.
+Language of all text fields: ${langName}.
+
+Score dimensions 0-100: positioning, content_pillars, hooks_pattern, posting_rhythm, visual_grid, cta_funnel, differentiation.
+Give 6-8 prioritized actions. Each action: what is wrong, what to change this week, why it matters.
+Never promise "X followers in Y days". Speak in ranges and experiments.`;
+
+    const userPrompt = `Audit this Instagram account.
+
+Username: @${username || 'unknown'}
+Niche: ${niche || 'not specified'}
+Goal: ${goal || 'not specified'}
+Bio / profile text: ${bio || 'not provided'}
+Stats (followers, avg views, ER if any): ${stats || 'not provided'}
+Recent posts / Reels notes or links (user-provided):
+${posts || 'not provided'}
+
+Return JSON:
+{
+  "overall_score": 0-100,
+  "summary": "5-8 sentences: who this account is for, what already works, main growth bottleneck",
+  "scores": {
+    "positioning": 0-100,
+    "content_pillars": 0-100,
+    "hooks_pattern": 0-100,
+    "posting_rhythm": 0-100,
+    "visual_grid": 0-100,
+    "cta_funnel": 0-100,
+    "differentiation": 0-100
+  },
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "actions": [
+    {"priority":"high|mid|low","title":"...","detail":"2-4 sentences concrete"}
+  ],
+  "7_day_plan": ["day theme or task", "..."],
+  "bio_rewrite": "one improved bio option",
+  "content_pillars_suggested": ["pillar1","pillar2","pillar3"]
+}`;
+
+    const completion = await client().chat.completions.create({
+      model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+      temperature: 0.35,
+      max_tokens: 2200,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: userPrompt }
+      ]
+    });
+
+    const raw = completion.choices?.[0]?.message?.content || '{}';
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { parsed = { summary: raw, actions: [] }; }
+
+    if (user) {
+      updateUser(user.email, (u) => {
+        u.analysesUsed = (u.analysesUsed || 0) + 1;
+      });
+    }
+
+    res.json({
+      ok: true,
+      username: username || null,
+      overall_score: Number(parsed.overall_score) || 0,
+      summary: String(parsed.summary || '').slice(0, 2000),
+      scores: parsed.scores || {},
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 8) : [],
+      weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.slice(0, 8) : [],
+      actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 10) : [],
+      plan7: Array.isArray(parsed['7_day_plan']) ? parsed['7_day_plan'].slice(0, 10) : (Array.isArray(parsed.plan7) ? parsed.plan7.slice(0, 10) : []),
+      bio_rewrite: String(parsed.bio_rewrite || '').slice(0, 400),
+      pillars: Array.isArray(parsed.content_pillars_suggested) ? parsed.content_pillars_suggested.slice(0, 6) : [],
+      engine: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
+    });
+  } catch (err) {
+    console.error('[account-audit]', err.message);
+    res.status(err?.status || 500).json({ error: err.message || 'Account audit failed' });
+  }
 });
 
 
