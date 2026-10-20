@@ -842,6 +842,10 @@
       <input id="accStats" placeholder="12k followers · avg Reels 3k views · ER ~2%" />
       <label data-i18n="acc_posts">Recent posts / Reels (links or short notes)</label>
       <textarea id="accPosts" placeholder="1) Reel about X — weak hook&#10;2) https://instagram.com/reel/...&#10;3) Carousel tips — good saves"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted);">
+        <input type="checkbox" id="accAutoFetch" checked />
+        <span data-i18n="acc_live">Подтянуть публичный профиль из Instagram (Apify)</span>
+      </label>
       <button type="button" class="btn-primary magnetic" id="accAnalyzeBtn" style="margin-top:18px;width:100%;border:none;" data-i18n="acc_btn">Run account audit</button>
       <p id="accHint" style="margin-top:10px;font-size:12px;color:var(--muted);" data-i18n="acc_hint">Studio plan or dev mode. Does not replace video frame analysis.</p>
     </div>
@@ -852,6 +856,7 @@
           <div class="acc-score-big" id="accScoreNum">—</div>
         </div>
         <div id="accUserLabel" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent-2);"></div>
+        <div id="accDataSource" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
       </div>
       <p id="accSummary" style="margin-top:14px;font-size:14px;line-height:1.55;color:var(--text);"></p>
       <div class="acc-bars" id="accBars"></div>
@@ -1011,6 +1016,7 @@
       acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Included in Studio ($24). Video analysis stays available for testing.',
       acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (paste current)',
       acc_stats:'Stats (optional)', acc_posts:'Recent posts / Reels (links or short notes)',
+      acc_live:'Fetch public Instagram profile (Apify)',
       acc_btn:'Run account audit', acc_hint:'Studio plan or dev mode. Does not replace video frame analysis.',
       acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
       acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
@@ -1111,6 +1117,7 @@
       acc_p:'Не один ролик — весь профиль: bio, столпы контента, паттерн хуков, сетка, CTA. Входит в Studio ($24). Разбор видео по кадрам остаётся отдельно.',
       acc_user:'Ник Instagram', acc_niche:'Ниша', acc_goal:'Цель', acc_bio:'Bio (вставьте текущий)',
       acc_stats:'Статистика (необязательно)', acc_posts:'Последние посты / Reels (ссылки или заметки)',
+      acc_live:'Подтянуть публичный профиль из Instagram (Apify)',
       acc_btn:'Запустить аудит аккаунта', acc_hint:'Тариф Studio или режим теста. Не заменяет покадровый разбор видео.',
       acc_score_label:'Оценка аккаунта', acc_strengths:'Сильные стороны', acc_weak:'Слабые стороны',
       acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_week:'План на 7 дней',
@@ -3387,7 +3394,8 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
             bio: bio,
             stats: stats,
             posts: posts,
-            language: (typeof LANG!=='undefined'?LANG:'ru')
+            language: (typeof LANG!=='undefined'?LANG:'ru'),
+            autoFetch: !!(document.getElementById('accAutoFetch') && document.getElementById('accAutoFetch').checked)
           })
         });
         var js = await res.json().catch(function(){return {};});
@@ -3400,6 +3408,17 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         if(sn) sn.textContent = (js.overall_score != null ? js.overall_score : '—');
         var ul = document.getElementById('accUserLabel');
         if(ul) ul.textContent = js.username ? ('@'+js.username) : '';
+        var ds = document.getElementById('accDataSource');
+        if(ds){
+          var liveBits = [];
+          if(js.live){
+            if(js.live.followers!=null) liveBits.push(js.live.followers+' followers');
+            if(js.live.postsCount!=null) liveBits.push(js.live.postsCount+' posts');
+            if(js.live.verified) liveBits.push('verified');
+            if(js.live.private) liveBits.push('private');
+          }
+          ds.textContent = (js.dataSource || '') + (liveBits.length ? (' · '+liveBits.join(' · ')) : '');
+        }
         var sum = document.getElementById('accSummary');
         if(sum) sum.textContent = js.summary || '';
         var sc = js.scores || {};

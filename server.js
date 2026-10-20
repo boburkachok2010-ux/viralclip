@@ -852,6 +852,88 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), (req
 
 
 
+
+async function fetchInstagramProfile(username) {
+  const token = String(process.env.APIFY_TOKEN || process.env.APIFY_API_TOKEN || '').trim();
+  if (!token) return null;
+  const actor = String(process.env.APIFY_IG_ACTOR || 'apify/instagram-profile-scraper').replace('/', '~');
+  const u = String(username || '').replace(/^@/, '').trim();
+  if (!u) return null;
+
+  const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}&timeout=120`;
+  const body = {
+    usernames: [u],
+    username: [u],
+    directUrls: [`https://www.instagram.com/${u}/`],
+    resultsType: 'details',
+    resultsLimit: 12,
+    includeLatestPosts: true,
+    includeRecentPosts: true
+  };
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 110000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      console.warn('[apify] status', res.status, t.slice(0, 300));
+      return { error: `Apify ${res.status}`, raw: t.slice(0, 200) };
+    }
+    const data = await res.json();
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row || typeof row !== 'object') return { error: 'empty' };
+
+    const posts = row.latestPosts || row.recentPosts || row.latest_posts || row.posts || [];
+    const postLines = (Array.isArray(posts) ? posts : []).slice(0, 12).map((p, i) => {
+      const cap = (p.caption || p.text || '').toString().replace(/\s+/g, ' ').slice(0, 180);
+      const likes = p.likesCount ?? p.likeCount ?? p.likes ?? '?';
+      const comments = p.commentsCount ?? p.commentCount ?? p.comments ?? '?';
+      const typ = p.type || p.productType || (p.isVideo ? 'video' : 'post');
+      const link = p.url || p.inputUrl || (p.shortCode ? `https://www.instagram.com/p/${p.shortCode}/` : '');
+      return `${i + 1}. [${typ}] likes=${likes} comments=${comments} ${link}\n   ${cap}`;
+    });
+
+    return {
+      source: 'apify',
+      username: row.username || u,
+      fullName: row.fullName || row.full_name || '',
+      biography: row.biography || row.bio || '',
+      followers: row.followersCount ?? row.followers ?? row.edge_followed_by?.count,
+      following: row.followsCount ?? row.followingCount ?? row.following,
+      postsCount: row.postsCount ?? row.mediaCount ?? row.posts_count,
+      isVerified: !!(row.verified || row.isVerified),
+      isPrivate: !!(row.private || row.isPrivate),
+      isBusiness: !!(row.isBusinessAccount || row.is_business_account),
+      externalUrl: row.externalUrl || row.external_url || '',
+      profileUrl: row.url || `https://www.instagram.com/${u}/`,
+      postsText: postLines.join('\n'),
+      rawSummary: JSON.stringify({
+        username: row.username || u,
+        fullName: row.fullName || row.full_name,
+        followers: row.followersCount ?? row.followers,
+        following: row.followsCount ?? row.followingCount,
+        postsCount: row.postsCount ?? row.mediaCount,
+        verified: row.verified || row.isVerified,
+        private: row.private || row.isPrivate,
+        business: row.isBusinessAccount,
+        bio: (row.biography || '').slice(0, 300)
+      })
+    };
+  } catch (e) {
+    console.warn('[apify] error', e.message);
+    return { error: e.message || 'apify failed' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
 // ----- Instagram / account audit (Studio premium) -----
 app.post('/api/account-audit', async (req, res) => {
   try {
@@ -877,10 +959,11 @@ app.post('/api/account-audit', async (req, res) => {
     const username = String(body.username || '').replace(/^@/, '').trim().slice(0, 64);
     const niche = String(body.niche || '').trim().slice(0, 120);
     const goal = String(body.goal || '').trim().slice(0, 200);
-    const bio = String(body.bio || '').trim().slice(0, 500);
-    const stats = String(body.stats || '').trim().slice(0, 400);
-    const posts = String(body.posts || '').trim().slice(0, 2500);
+    let bio = String(body.bio || '').trim().slice(0, 500);
+    let stats = String(body.stats || '').trim().slice(0, 400);
+    let posts = String(body.posts || '').trim().slice(0, 2500);
     const language = body.language === 'en' ? 'en' : (body.language === 'uz' ? 'uz' : 'ru');
+    const autoFetch = body.autoFetch !== false; // default on when token present
     if (!username && !posts && !bio) {
       return res.status(400).json({
         error: 'Provide username or post descriptions',
@@ -888,9 +971,35 @@ app.post('/api/account-audit', async (req, res) => {
       });
     }
 
+    let live = null;
+    let liveNote = 'manual input only (no APIFY_TOKEN)';
+    if (autoFetch && username) {
+      live = await fetchInstagramProfile(username);
+      if (live && !live.error) {
+        liveNote = 'live public profile via Apify';
+        if (!bio && live.biography) bio = String(live.biography).slice(0, 500);
+        const parts = [];
+        if (live.followers != null) parts.push(live.followers + ' followers');
+        if (live.following != null) parts.push(live.following + ' following');
+        if (live.postsCount != null) parts.push(live.postsCount + ' posts');
+        if (live.isVerified) parts.push('verified');
+        if (live.isPrivate) parts.push('PRIVATE');
+        if (live.isBusiness) parts.push('business');
+        if (live.externalUrl) parts.push('link: ' + live.externalUrl);
+        const liveStats = parts.join(' · ');
+        stats = stats ? (stats + ' | LIVE: ' + liveStats) : ('LIVE: ' + liveStats);
+        if (live.postsText) {
+          posts = (posts ? posts + '\n\n' : '') + '--- LIVE RECENT POSTS ---\n' + live.postsText;
+        }
+      } else if (live && live.error) {
+        liveNote = 'Apify error: ' + live.error + ' (using manual fields)';
+      }
+    }
+
     const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
     const system = `You are a senior Instagram growth strategist and short-form content director (Reels-first).
 You audit CREATOR ACCOUNTS, not a single video. Be specific, honest, no fake view guarantees.
+When LIVE profile data is present, treat counts/captions as ground truth; do not invent follower numbers.
 Output JSON only.
 Language of all text fields: ${langName}.
 
@@ -899,13 +1008,15 @@ Give 6-8 prioritized actions. Each action: what is wrong, what to change this we
 Never promise "X followers in Y days". Speak in ranges and experiments.`;
 
     const userPrompt = `Audit this Instagram account.
+Data source: ${liveNote}
 
 Username: @${username || 'unknown'}
+Full name (live): ${(live && live.fullName) || 'n/a'}
 Niche: ${niche || 'not specified'}
 Goal: ${goal || 'not specified'}
 Bio / profile text: ${bio || 'not provided'}
 Stats (followers, avg views, ER if any): ${stats || 'not provided'}
-Recent posts / Reels notes or links (user-provided):
+Recent posts / Reels (live scrape and/or user notes):
 ${posts || 'not provided'}
 
 Return JSON:
@@ -955,6 +1066,14 @@ Return JSON:
     res.json({
       ok: true,
       username: username || null,
+      dataSource: liveNote,
+      live: live && !live.error ? {
+        followers: live.followers,
+        following: live.following,
+        postsCount: live.postsCount,
+        verified: live.isVerified,
+        private: live.isPrivate
+      } : null,
       overall_score: Number(parsed.overall_score) || 0,
       summary: String(parsed.summary || '').slice(0, 2000),
       scores: parsed.scores || {},
