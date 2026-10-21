@@ -596,10 +596,10 @@
     <a href="#analyzer" data-i18n="nav_analyze">Analyze</a>
 <a href="#scores" data-i18n="nav_scoring">Scoring</a>
     <a href="#account-audit" data-i18n="nav_account_audit">IG Account</a>
-    <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
+    <a href="#pricing" data-i18n="nav_pricing" style="display:none">Pricing</a>
 </div>
   <div class="nav-right">
-    <span class="coin-badge" id="coinBadge" style="display:none">0 🪙</span>
+    <span class="coin-badge" id="coinBadge" style="display:none !important">0 🪙</span>
     <button class="lang-toggle magnetic" id="langToggle" type="button">RU</button>
     <button type="button" class="btn-ghost magnetic" id="authBtn" style="padding:8px 14px;font-size:13px;border:1px solid var(--line);border-radius:999px;" data-i18n="nav_account">Log in</button>
     <a href="#analyzer" class="nav-cta magnetic" data-i18n="nav_try">Try it free</a>
@@ -876,7 +876,7 @@
   </div>
 </section>
 
-<section class="wrap" id="pricing" style="padding-top:80px;padding-bottom:40px;">
+<section class="wrap" id="pricing" style="padding-top:80px;padding-bottom:40px;display:none;">
   <span class="kicker reveal" data-i18n="pricing_kicker">Pricing</span>
   <h2 class="reveal" data-i18n="pricing_h2" style="max-width:640px;">Coins & plans</h2>
   <p class="reveal" data-i18n="pricing_p" style="color:var(--muted);max-width:560px;margin-top:10px;">1 analysis = 10 coins. New accounts get 10 free coins (1 audit).</p>
@@ -1012,12 +1012,12 @@
       founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wish someone had handed me back then — built by a creator, not a committee."',
       founder_attr:'— Founder, ViralClip',
       nav_account_audit:'IG Account',
-      acc_kicker:'Premium · Studio', acc_h2:'Instagram account audit',
-      acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Included in Studio ($24). Video analysis stays available for testing.',
+      acc_kicker:'Free beta', acc_h2:'Instagram account audit',
+      acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Currently free while we test.',
       acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (paste current)',
       acc_stats:'Stats (optional)', acc_posts:'Recent posts / Reels (links or short notes)',
       acc_live:'Fetch public Instagram profile (Apify)',
-      acc_btn:'Run account audit', acc_hint:'Studio plan or dev mode. Does not replace video frame analysis.',
+      acc_btn:'Run account audit', acc_hint:'Free for now. Does not replace video frame analysis.',
       acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
       acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
       acc_running:'Auditing account…', acc_err:'Account audit failed',
@@ -1113,12 +1113,12 @@
       founder_quote:'«Я монтирую чужие каналы с четырнадцати лет. ViralClip — инструмент, который я хотел бы иметь тогда — сделан автором для авторов, а не комитетом».',
       founder_attr:'— Основатель ViralClip',
       nav_account_audit:'IG аккаунт',
-      acc_kicker:'Премиум · Studio', acc_h2:'Аудит Instagram-аккаунта',
-      acc_p:'Не один ролик — весь профиль: bio, столпы контента, паттерн хуков, сетка, CTA. Входит в Studio ($24). Разбор видео по кадрам остаётся отдельно.',
+      acc_kicker:'Бесплатно · бета', acc_h2:'Аудит Instagram-аккаунта',
+      acc_p:'Не один ролик — весь профиль: bio, столпы контента, паттерн хуков, сетка, CTA. Сейчас бесплатно на время тестов.',
       acc_user:'Ник Instagram', acc_niche:'Ниша', acc_goal:'Цель', acc_bio:'Bio (вставьте текущий)',
       acc_stats:'Статистика (необязательно)', acc_posts:'Последние посты / Reels (ссылки или заметки)',
       acc_live:'Подтянуть публичный профиль из Instagram (Apify)',
-      acc_btn:'Запустить аудит аккаунта', acc_hint:'Тариф Studio или режим теста. Не заменяет покадровый разбор видео.',
+      acc_btn:'Запустить аудит аккаунта', acc_hint:'Пока бесплатно. Не заменяет покадровый разбор видео.',
       acc_score_label:'Оценка аккаунта', acc_strengths:'Сильные стороны', acc_weak:'Слабые стороны',
       acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_week:'План на 7 дней',
       acc_running:'Анализируем аккаунт…', acc_err:'Не удалось сделать аудит аккаунта',
@@ -3282,7 +3282,8 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
     } catch(e){}
     return h;
   }
-  function setCoinBadge(n){
+  function setCoinBadge(n){ var el=document.getElementById("coinBadge"); if(el){ el.style.display="none"; } return; // free mode
+  function setCoinBadge_disabled(n){
     var el = document.getElementById('coinBadge');
     if(!el) return;
     if(n == null || isNaN(n)){ el.style.display = 'none'; return; }

@@ -226,8 +226,10 @@ app.post(
       const audio = body.audio || {};
       const transcript = body.transcript || {};
 
+      // FREE MODE: analysis is free for everyone (no login, no coins)
       const paidUser = authUser(req);
-      const devPay = String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
+      const freeMode = String(process.env.FREE_MODE || '1') !== '0';
+      const devPay = freeMode || String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
       if (!paidUser && !devPay) {
         return res.status(401).json({
           error: 'Login required',
@@ -235,16 +237,8 @@ app.post(
           code: 'AUTH'
         });
       }
-      const bal = paidUser ? (Number(paidUser.coins) || 0) : 999;
-      if (paidUser && bal < COINS_PER_ANALYSIS) {
-        return res.status(402).json({
-          error: 'Not enough coins',
-          error_ru: 'Нужно ' + COINS_PER_ANALYSIS + ' монет. На балансе: ' + bal,
-          code: 'COINS',
-          coins: bal,
-          need: COINS_PER_ANALYSIS
-        });
-      }
+      // Coins disabled while FREE_MODE=1
+      const bal = 9999;
 
       if (!frames.length) {
         return res.status(400).json({ error: 'frames[] required' });
@@ -474,11 +468,13 @@ JSON only.`;
       let charged = 0;
       if (paidUser) {
         const after = updateUser(paidUser.email, (u) => {
-          u.coins = Math.max(0, (Number(u.coins) || 0) - COINS_PER_ANALYSIS);
+          if (!freeMode) {
+            u.coins = Math.max(0, (Number(u.coins) || 0) - COINS_PER_ANALYSIS);
+          }
           u.analysesUsed = (u.analysesUsed || 0) + 1;
         });
-        coinsLeft = after ? after.coins : bal - COINS_PER_ANALYSIS;
-        charged = COINS_PER_ANALYSIS;
+        coinsLeft = freeMode ? null : (after ? after.coins : null);
+        charged = freeMode ? 0 : COINS_PER_ANALYSIS;
       }
       res.json({
         overall_comment: parsed.overall_comment || '',
@@ -732,6 +728,15 @@ app.get('/api/billing/catalog', (req, res) => {
 
 // ----- Checkout (Stripe) -----
 app.post('/api/billing/checkout', async (req, res) => {
+  if (String(process.env.FREE_MODE || '1') !== '0') {
+    return res.json({
+      ok: true,
+      freeMode: true,
+      message: 'FREE MODE: payments disabled — everything is free',
+      message_ru: 'Сейчас всё бесплатно. Оплата отключена.'
+    });
+  }
+
   try {
     const user = authUser(req);
     if (!user) {
@@ -944,13 +949,14 @@ app.post('/api/account-audit', async (req, res) => {
       });
     }
     const user = authUser(req);
-    const devPay = String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
+    const freeMode = String(process.env.FREE_MODE || '1') !== '0';
+    const devPay = freeMode || String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
     const plan = (user && user.plan) || 'free';
-    const allowed = devPay || plan === 'studio';
+    const allowed = freeMode || devPay || plan === 'studio';
     if (!allowed) {
       return res.status(403).json({
         error: 'Studio plan required',
-        error_ru: 'Анализ аккаунта доступен на тарифе Studio ($24). Или включите ALLOW_DEV_PAYMENTS=1 для тестов.',
+        error_ru: 'Анализ аккаунта временно только для Studio. FREE_MODE=1 на сервере открывает всем.',
         code: 'PLAN'
       });
     }
