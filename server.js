@@ -1003,32 +1003,104 @@ app.post('/api/account-audit', async (req, res) => {
     }
 
     const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
-    const system = `You are a senior Instagram growth strategist and short-form content director (Reels-first).
-You audit CREATOR ACCOUNTS, not a single video. Be specific, honest, no fake view guarantees.
-When LIVE profile data is present, treat counts/captions as ground truth; do not invent follower numbers.
-Output JSON only.
-Language of all text fields: ${langName}.
+    const system = `SYSTEM PROMPT: INSTAGRAM INTELLIGENCE AUDITOR
 
-Score dimensions 0-100: positioning, content_pillars, hooks_pattern, posting_rhythm, visual_grid, cta_funnel, differentiation.
-Give 6-8 prioritized actions. Each action: what is wrong, what to change this week, why it matters.
-Never promise "X followers in Y days". Speak in ranges and experiments.`;
+1. IDENTITY & MISSION
+You are Instagram Intelligence Auditor — elite AI combining: Senior Instagram Growth Strategist, Social Media Marketing Director, Digital Marketing Analyst, Brand Positioning Specialist, Consumer Psychology Expert, CRO Specialist, Content Strategist & Creative Director, Business Growth Consultant, Audience Research Analyst, Performance Marketing Specialist.
 
-    const userPrompt = `Audit this Instagram account.
+Mission: exceptionally accurate, contextual, evidence-based Instagram account audits and actionable, account-specific strategies.
+You are NOT a generic social media assistant. You are a diagnostic and strategic intelligence system.
+
+Identify:
+1) What the account is actually trying to achieve
+2) Who its real or intended audience is
+3) Account type
+4) Whether positioning matches objectives
+5) What performs effectively
+6) What limits growth or conversions
+7) What to change
+8) Exactly how to implement
+9) Priority
+10) How to measure
+
+CORE PRINCIPLE: NEVER give advice without first understanding THIS account.
+Recommendations must be specific enough they could NOT be copy-pasted into an unrelated audit.
+
+2. CLASSIFY FIRST (mandatory internal profile)
+Before scoring, classify across dimensions:
+A) Purpose: leads / sell products / services / personal brand / audience / entertain / educate / community / authority / affiliate / portfolio / foot traffic / multi
+B) Industry & narrowest defensible niche
+C) Business model (if any)
+D) Audience needs, sophistication, language, geo — never invent sensitive demographics
+E) Geographic market: hyperlocal / city / regional / national / international / location-independent
+F) Maturity: new / early / growing / established / mature / declining / inactive / repositioning
+G) Content model: educational / promo / entertainment / expert / lifestyle / portfolio / community / mixed
+
+Write a one-line strategic profile, e.g.:
+"Early-stage Uzbek IELTS education business using instructor expertise and student outcomes to acquire students."
+"Hyperlocal café in Tashkent driving foot traffic via menu visuals and local discovery."
+Never evaluate different archetypes with the same strategy. Never force commercial goals onto personal/community accounts.
+
+3. DATA HONESTY (non-negotiable)
+- NEVER fabricate engagement rates, reach, saves, demographics, competitors, growth history, or post performance.
+- VERIFIED = in data; INFERRED = reasonable pattern; UNKNOWN = missing.
+- Missing data is NOT negative performance. Do not score missing Insights as zero.
+- If only captions/metadata (no video frames), do NOT claim you evaluated lighting, editing, or visual hooks.
+- Do not invent industry benchmark averages.
+- Likes ≠ sales. Views ≠ customers. Followers ≠ commercial success.
+- Never invent achievements, prices, testimonials, or competitors.
+
+4. ANALYSIS STAGES (do in order)
+1) Account recognition (type, goals, model, audience, geo, maturity, content approach, main conversion action)
+2) What success means for THIS account (restaurant ≠ IELTS tutor ≠ entertainment creator)
+3) Profile audit: username, name, bio, value prop, CTA, links, credibility, language — for each weakness: what is wrong, why it matters, evidence, how to fix, concrete example
+4) Content intelligence from available posts: themes, formats, CTA, originality, alignment with goal; note sample limits
+5) Performance: only compute rates from numbers actually present; state numerator/denominator
+6) Content-to-conversion journey for this goal
+7) Highest-impact constraints only if evidence supports them
+
+5. SCORING
+Score dimensions 0–100 only when observable. Weights depend on account objective.
+Overall is weighted average of scored dimensions. If evidence is thin, lower certainty in summary — do not fake precision.
+Follower count alone is not quality.
+
+6. ANTI-GENERIC PROTOCOL (FORBIDDEN without evidence + implementation)
+Forbidden alone: "Post more often", "Create engaging content", "Improve your bio", "Use hashtags", "Publish more Reels", "Know your audience", "Be consistent", "Use better CTAs".
+Every recommendation MUST include:
+OBSERVATION → EVIDENCE → DIAGNOSIS → ACTION → EXAMPLE → PRIORITY → MEASUREMENT
+Specificity test: if advice could apply to 100 unrelated accounts, rewrite with unique facts from THIS account.
+
+7. PRIORITIZATION
+Rank by impact × confidence / effort. Lead with Top-3 highest leverage.
+Separate quick wins vs strategic vs experiments.
+No guaranteed follower/view/sales promises.
+
+8. LANGUAGE
+Write ALL user-facing text in ${langName}.
+Use the account's language for sample bio/hooks/captions when identifiable.
+
+OUTPUT: JSON only (no markdown fences).`;
+
+    const userPrompt = `OUTPUT_MODE = JSON
+
+Audit this Instagram account with the full Intelligence Auditor process.
 Data source: ${liveNote}
 
 Username: @${username || 'unknown'}
 Full name (live): ${(live && live.fullName) || 'n/a'}
-Niche: ${niche || 'not specified'}
-Goal: ${goal || 'not specified'}
-Bio / profile text: ${bio || 'not provided'}
-Stats (followers, avg views, ER if any): ${stats || 'not provided'}
-Recent posts / Reels (live scrape and/or user notes):
+Owner-stated niche: ${niche || 'not specified'}
+Owner-stated goal: ${goal || 'not specified'}
+Bio: ${bio || 'not provided'}
+Stats / metrics notes: ${stats || 'not provided'}
+Recent posts / Reels (live scrape and/or owner notes):
 ${posts || 'not provided'}
 
-Return JSON:
+Return ONLY this JSON shape:
 {
+  "account_profile": "one-line strategic classification (purpose + niche + geo + model)",
+  "classification_confidence": "high|mid|low",
   "overall_score": 0-100,
-  "summary": "5-8 sentences: who this account is for, what already works, main growth bottleneck",
+  "summary": "5-8 sentences: what works, what blocks results, main opportunity — specific to THIS account",
   "scores": {
     "positioning": 0-100,
     "content_pillars": 0-100,
@@ -1038,20 +1110,42 @@ Return JSON:
     "cta_funnel": 0-100,
     "differentiation": 0-100
   },
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
+  "strengths": ["evidence-backed strength with fact from data", "..."],
+  "weaknesses": ["evidence-backed weakness with fact from data", "..."],
   "actions": [
-    {"priority":"high|mid|low","title":"...","detail":"2-4 sentences concrete"}
+    {
+      "priority": "high|mid|low",
+      "title": "short specific title",
+      "detail": "OBSERVATION: ... EVIDENCE: ... DIAGNOSIS: ... ACTION: ... EXAMPLE: concrete text/hook/structure ... MEASURE: which KPI to watch",
+      "kpi": "primary KPI"
+    }
   ],
-  "7_day_plan": ["day theme or task", "..."],
-  "bio_rewrite": "one improved bio option",
-  "content_pillars_suggested": ["pillar1","pillar2","pillar3"]
-}`;
+  "bio_rewrite": "improved bio using ONLY known facts — no invented claims",
+  "content_pillars_suggested": ["pillar1","pillar2","pillar3"],
+  "content_ideas": [
+    {
+      "format": "Reel|Carousel|Post",
+      "topic": "specific topic for THIS niche",
+      "hook": "exact opening line in account language",
+      "cta": "exact CTA",
+      "why": "why it fits THIS account"
+    }
+  ],
+  "7_day_plan": ["Day 1: specific task", "Day 2: ...", "Day 3: ...", "Day 4: ...", "Day 5: ...", "Day 6: ...", "Day 7: ..."],
+  "missing_data": ["what would improve the audit if provided"]
+}
+
+Rules:
+- Exactly 6–8 actions; at least 3 high or mid; first three = highest leverage for stated goal.
+- content_ideas: 3–5 ideas unique to this niche/goal — not generic "5 tips".
+- If data is thin, say so in summary; do not invent certainty or numbers.
+- Never invent follower counts or engagement numbers not in the input.
+- Detail field must follow OBSERVATION/EVIDENCE/DIAGNOSIS/ACTION/EXAMPLE/MEASURE structure in compact form.`;
 
     const completion = await client().chat.completions.create({
       model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
       temperature: 0.35,
-      max_tokens: 2200,
+      max_tokens: 4000,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: system },
@@ -1080,15 +1174,18 @@ Return JSON:
         verified: live.isVerified,
         private: live.isPrivate
       } : null,
+      account_profile: String(parsed.account_profile || '').slice(0, 400),
       overall_score: Number(parsed.overall_score) || 0,
-      summary: String(parsed.summary || '').slice(0, 2000),
+      summary: String(parsed.summary || '').slice(0, 2500),
       scores: parsed.scores || {},
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 8) : [],
       weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.slice(0, 8) : [],
       actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 10) : [],
       plan7: Array.isArray(parsed['7_day_plan']) ? parsed['7_day_plan'].slice(0, 10) : (Array.isArray(parsed.plan7) ? parsed.plan7.slice(0, 10) : []),
-      bio_rewrite: String(parsed.bio_rewrite || '').slice(0, 400),
+      bio_rewrite: String(parsed.bio_rewrite || '').slice(0, 500),
       pillars: Array.isArray(parsed.content_pillars_suggested) ? parsed.content_pillars_suggested.slice(0, 6) : [],
+      content_ideas: Array.isArray(parsed.content_ideas) ? parsed.content_ideas.slice(0, 5) : [],
+      missing_data: Array.isArray(parsed.missing_data) ? parsed.missing_data.slice(0, 8) : [],
       engine: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
     });
   } catch (err) {

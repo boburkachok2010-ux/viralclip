@@ -858,7 +858,9 @@
         <div id="accUserLabel" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent-2);"></div>
         <div id="accDataSource" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
       </div>
-      <p id="accSummary" style="margin-top:14px;font-size:14px;line-height:1.55;color:var(--text);"></p>
+      <p id="accProfile" style="margin-top:10px;font-size:12px;color:var(--accent-2);font-family:'JetBrains Mono',monospace;line-height:1.4;"></p>
+      <p id="accSummary" style="margin-top:10px;font-size:14px;line-height:1.55;color:var(--text);"></p>
+      <div id="accIdeas" style="margin-top:14px;"></div>
       <div class="acc-bars" id="accBars"></div>
       <h3 style="margin:20px 0 0;font-size:15px;" data-i18n="acc_strengths">Strengths</h3>
       <ul class="acc-list" id="accStrengths"></ul>
@@ -1019,7 +1021,7 @@
       acc_live:'Fetch public Instagram profile (Apify)',
       acc_btn:'Run account audit', acc_hint:'Free for now. Does not replace video frame analysis.',
       acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
-      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
+      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_ideas:'Content ideas', acc_week:'7-day plan',
       acc_running:'Auditing account…', acc_err:'Account audit failed',
       pricing_kicker:'Pricing', pricing_h2:'Pay per audit, or go unlimited.', pricing_p:'New accounts start with 30 free coins. One analysis costs 10.',
       tab_coins:'Coin packs', tab_sub:'Subscription',
@@ -1120,7 +1122,7 @@
       acc_live:'Подтянуть публичный профиль из Instagram (Apify)',
       acc_btn:'Запустить аудит аккаунта', acc_hint:'Пока бесплатно. Не заменяет покадровый разбор видео.',
       acc_score_label:'Оценка аккаунта', acc_strengths:'Сильные стороны', acc_weak:'Слабые стороны',
-      acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_week:'План на 7 дней',
+      acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_ideas:'Идеи контента', acc_week:'План на 7 дней',
       acc_running:'Анализируем аккаунт…', acc_err:'Не удалось сделать аудит аккаунта',
       pricing_kicker:'Тарифы', pricing_h2:'Платите за аудит — или берите безлимит.', pricing_p:'Новый аккаунт получает 30 монет бесплатно. Один анализ стоит 10.',
       tab_coins:'Пакеты монет', tab_sub:'Подписка',
@@ -3419,6 +3421,19 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         }
         var sum = document.getElementById('accSummary');
         if(sum) sum.textContent = js.summary || '';
+        var ap = document.getElementById('accProfile');
+        if(ap) ap.textContent = js.account_profile || '';
+        var ideas = document.getElementById('accIdeas');
+        if(ideas){
+          if(js.content_ideas && js.content_ideas.length){
+            ideas.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">'+(LANG==='ru'?'Идеи контента':'Content ideas')+'</div>' +
+              js.content_ideas.map(function(c){
+                return '<div class="acc-action"><h4>['+String(c.format||'Post').replace(/</g,'&lt;')+'] '+String(c.topic||'').replace(/</g,'&lt;')+'</h4>'
+                  +'<p><b>Hook:</b> '+String(c.hook||'').replace(/</g,'&lt;')+'</p>'
+                  +'<p><b>CTA:</b> '+String(c.cta||'').replace(/</g,'&lt;')+' · '+String(c.why||'').replace(/</g,'&lt;')+'</p></div>';
+              }).join('');
+          } else { ideas.innerHTML = ''; }
+        }
         var sc = js.scores || {};
         var bars = document.getElementById('accBars');
         if(bars){
@@ -3442,16 +3457,42 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         var act = document.getElementById('accActions');
         if(act){
           act.innerHTML = (js.actions||[]).map(function(a){
-            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div>';
+            var det = String(a.detail||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+            var kpi = a.kpi ? '<br><span style="opacity:.75">KPI: '+String(a.kpi).replace(/</g,'&lt;')+'</span>' : '';
+            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+det+kpi+'</p></div>';
           }).join('') || '<p style="color:var(--muted)">—</p>';
         }
         var bn = document.getElementById('accBioNew');
         if(bn) bn.textContent = js.bio_rewrite || '—';
         var pl = document.getElementById('accPillars');
         if(pl) pl.textContent = (js.pillars||[]).join(' · ') || '—';
+        var ideas = document.getElementById('accIdeas');
+        if(ideas){
+          var arr = js.content_ideas || [];
+          ideas.innerHTML = arr.length ? arr.map(function(idea){
+            var f = String(idea.format||'').replace(/</g,'&lt;');
+            var t = String(idea.topic||'').replace(/</g,'&lt;');
+            var h = String(idea.hook||'').replace(/</g,'&lt;');
+            var c = String(idea.cta||'').replace(/</g,'&lt;');
+            var w = String(idea.why||'').replace(/</g,'&lt;');
+            return '<div class="acc-action"><h4>['+f+'] '+t+'</h4><p><b>Hook:</b> '+h+'<br><b>CTA:</b> '+c+'<br>'+w+'</p></div>';
+          }).join('') : '<p style="color:var(--muted);font-size:13px">—</p>';
+        }
         var week = document.getElementById('accWeek');
         if(week){
           week.innerHTML = (js.plan7||[]).map(function(x){ return '<li>'+String(x).replace(/</g,'&lt;')+'</li>'; }).join('') || '<li>—</li>';
+        }
+        var miss = document.getElementById('accMissing');
+        if(miss){
+          var md = js.missing_data || [];
+          miss.textContent = md.length ? ((LANG==='ru'?'Не хватает данных: ':'Missing data: ')+md.join('; ')) : '';
+        }
+        // show account profile under score if present
+        if(js.account_profile){
+          var sumEl = document.getElementById('accSummary');
+          if(sumEl && sumEl.textContent.indexOf(js.account_profile) !== 0){
+            sumEl.textContent = js.account_profile + '\n\n' + (js.summary || '');
+          }
         }
         box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         showToast(LANG==='ru' ? '✓ Аудит аккаунта готов' : '✓ Account audit ready');
