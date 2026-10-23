@@ -425,7 +425,7 @@ JSON only.`;
           type: 'text',
           text:
             (language === 'en' ? hardEn : hardRu) +
-            (language === 'uz' ? '\n\nJAVOB TILINI: o\'zbek tilida yozing (JSON maydonlari o\'zbekcha).\n' : '') +
+            (language === 'uz' ? '\n\nJAVOB TILI: faqat o\'zbekcha. overall_comment, title, advice — o\'zbek tilida. Ruscha yozmang.\n' : '') +
             '\n\n' +
             metricsBlock +
             '\n\nFrames (look at each image):'
@@ -448,7 +448,7 @@ JSON only.`;
         max_tokens: 3200,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: language === 'en' ? systemEn : systemRu },
+          { role: 'system', content: language === 'en' ? systemEn : (systemRu + (language === 'uz' ? '\n\nCRITICAL: Entire JSON output (overall_comment, title, advice) MUST be in Uzbek (o\'zbek tili). Do not use Russian.' : '')) },
           { role: 'user', content }
         ]
       });
