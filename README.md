@@ -168,3 +168,14 @@ Checkout will **add coins without real charge** (for testing only).
 ### Uzbekistan note
 
 If Stripe does not accept UZ as merchant country, use Payme/Click later or open Stripe via another supported country/entity. The code is ready for Stripe keys when you have them.
+
+
+## Google Sign-In + Admin
+
+1. Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID → **Web application**
+2. Authorized JavaScript origins: `https://YOUR-app.onrender.com` and `http://localhost:3000`
+3. Render Environment:
+   - `GOOGLE_CLIENT_ID=....apps.googleusercontent.com`
+   - `ADMIN_EMAILS=boburkachok2010@gmail.com`
+4. Login as that Gmail → Admin panel at bottom of site
+5. Note: on Render free tier `users.json` resets when the service redeploys/sleeps — for production use a real database later

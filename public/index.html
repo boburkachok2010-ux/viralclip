@@ -1098,7 +1098,7 @@
 
  nav_scoring:'Scoring',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
       auth_email:'Email', auth_pass:'Password', auth_name:'Name',
-      auth_login_btn:'Log in', auth_reg_btn:'Create account',
+      auth_or:'or', auth_login_btn:'Log in', auth_reg_btn:'Create account',
       auth_note:'Free beta. No payment yet.',
 
       hero_eyebrow:'AI video audit · free',
@@ -1199,7 +1199,7 @@
 
  nav_scoring:'Оценка',   nav_try:'Попробовать бесплатно', nav_account:'Войти', nav_logout:'Выйти',
       auth_email:'Email', auth_pass:'Пароль', auth_name:'Имя',
-      auth_login_btn:'Войти', auth_reg_btn:'Создать аккаунт',
+      auth_or:'или', auth_login_btn:'Войти', auth_reg_btn:'Создать аккаунт',
       auth_note:'Бесплатная бета. Оплаты пока нет.',
 
       hero_eyebrow:'AI-аудит видео · бесплатно',
@@ -1320,7 +1320,7 @@
     auth_email:'Email',
     auth_pass:'Parol',
     auth_name:'Ism',
-    auth_login_btn:'Kirish',
+    auth_or:'yoki', auth_login_btn:'Kirish',
     auth_reg_btn:'Akkount yaratish',
     auth_note:'Bepul beta. Hozircha to\'lov yo\'q.',
     scores_kicker:'Nima baholanadi',
@@ -1732,16 +1732,25 @@
   }
   function refreshAuthUI(){
     var btn = document.getElementById('authBtn');
-    var u = getUser();
-    if(!btn) return;
-    if(u && u.email){
-      btn.textContent = (u.name || u.email.split('@')[0]) + ' · ' + (LANG==='ru' ? 'Выйти' : 'Log out');
-      btn.setAttribute('data-logged', '1');
-      if(typeof setCoinBadge==='function' && u.coins != null) setCoinBadge(u.coins);
-    } else {
-      btn.textContent = (I18N[LANG] && I18N[LANG].nav_account) || (LANG==='ru'?'Войти':'Log in');
-      btn.setAttribute('data-logged', '0');
-      if(typeof setCoinBadge==='function') setCoinBadge(null);
+    var u = null;
+    try { u = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null'); } catch(e){ u = null; }
+    if(btn){
+      if(u && u.email){
+        btn.setAttribute('data-logged', '1');
+        var label = (u.isAdmin ? 'Admin · ' : '') + (u.name || u.email.split('@')[0]);
+        if(u.coins != null) label += ' · ' + u.coins + '🪙';
+        btn.textContent = label;
+      } else {
+        btn.setAttribute('data-logged', '0');
+        var dict = (typeof I18N!=='undefined' && I18N[LANG]) ? I18N[LANG] : {};
+        btn.textContent = dict.nav_account || 'Log in';
+      }
+    }
+    if(typeof setCoinBadge === 'function' && u && u.coins != null) setCoinBadge(u.coins);
+    var adm = document.getElementById('admin-panel');
+    if(adm){
+      adm.style.display = (u && u.isAdmin) ? 'block' : 'none';
+      if(u && u.isAdmin && typeof loadAdminUsers === 'function') loadAdminUsers();
     }
   }
   var authBtn = document.getElementById('authBtn');
@@ -1840,6 +1849,120 @@
       }
     });
   }
+
+  /* ===== Google Sign-In + Admin ===== */
+  var GOOGLE_CLIENT_ID = null;
+  async function loadAuthConfig(){
+    try {
+      var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/auth/config');
+      var js = await res.json();
+      GOOGLE_CLIENT_ID = js.googleClientId || null;
+      var hint = document.getElementById('googleAuthHint');
+      if(hint && !GOOGLE_CLIENT_ID){
+        hint.textContent = (LANG==='ru')
+          ? 'Google-вход: добавьте GOOGLE_CLIENT_ID на сервере'
+          : 'Google login: set GOOGLE_CLIENT_ID on server';
+      }
+      if(GOOGLE_CLIENT_ID) renderGoogleButton();
+    } catch(e){}
+  }
+  function renderGoogleButton(){
+    var slot = document.getElementById('googleBtnSlot');
+    if(!slot || !GOOGLE_CLIENT_ID) return;
+    if(typeof google === 'undefined' || !google.accounts || !google.accounts.id){
+      setTimeout(renderGoogleButton, 400);
+      return;
+    }
+    slot.innerHTML = '';
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: onGoogleCredential
+    });
+    google.accounts.id.renderButton(slot, {
+      theme: 'outline',
+      size: 'large',
+      shape: 'pill',
+      text: 'continue_with',
+      width: 280
+    });
+  }
+  async function onGoogleCredential(resp){
+    try {
+      var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: resp.credential })
+      });
+      var js = await res.json().catch(function(){ return {}; });
+      if(!res.ok) throw new Error(js.error_ru || js.error || 'Google login failed');
+      setAuth(js.token, js.user);
+      closeModal(getAuthModal());
+      showToast(LANG==='ru' ? 'Вход через Google' : (LANG==='uz' ? 'Google orqali kirdingiz' : 'Signed in with Google'));
+    } catch(err){
+      showAuthErr(err.message || 'Google error');
+    }
+  }
+  async function loadAdminUsers(){
+    var body = document.getElementById('adminUsersBody');
+    var meta = document.getElementById('adminMeta');
+    if(!body) return;
+    try {
+      var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/admin/users', { headers: authHeaders() });
+      var js = await res.json().catch(function(){ return {}; });
+      if(!res.ok) throw new Error(js.error_ru || js.error || 'Admin load failed');
+      var rows = (js.users || []).map(function(u){
+        return '<tr style="border-bottom:1px solid var(--line);">'
+          + '<td style="padding:10px 12px;">'+String(u.email).replace(/</g,'&lt;')+(u.isAdmin?' <b>· admin</b>':'')+'</td>'
+          + '<td style="padding:10px 12px;">'+String(u.name||'—').replace(/</g,'&lt;')+'</td>'
+          + '<td style="padding:10px 12px;">'+u.coins+'</td>'
+          + '<td style="padding:10px 12px;">'+String(u.plan||'free')+'</td>'
+          + '<td style="padding:10px 12px;">'+String(u.provider||'password')+'</td>'
+          + '<td style="padding:10px 12px;font-size:11px;color:var(--muted);">'+String(u.lastLoginAt||u.createdAt||'—').replace('T',' ').slice(0,19)+'</td>'
+          + '<td style="padding:10px 12px;"><button type="button" class="btn-ghost admin-quick" data-email="'+String(u.email).replace(/"/g,'')+'" style="padding:4px 10px;font-size:12px;border:1px solid var(--line);border-radius:999px;">+100</button></td>'
+          + '</tr>';
+      }).join('');
+      body.innerHTML = rows || '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Пока нет пользователей</td></tr>';
+      if(meta) meta.textContent = 'Всего аккаунтов: ' + (js.total || 0);
+      body.querySelectorAll('.admin-quick').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var em = btn.getAttribute('data-email');
+          var inp = document.getElementById('adminGrantEmail');
+          if(inp) inp.value = em;
+          grantCoinsTo(em, 100);
+        });
+      });
+    } catch(err){
+      body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#f66;">'+String(err.message||err).replace(/</g,'&lt;')+'</td></tr>';
+    }
+  }
+  async function grantCoinsTo(email, coins){
+    try {
+      var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/admin/grant-coins', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ email: email, coins: coins })
+      });
+      var js = await res.json().catch(function(){ return {}; });
+      if(!res.ok) throw new Error(js.error_ru || js.error || 'Grant failed');
+      showToast(js.message || 'OK');
+      loadAdminUsers();
+    } catch(err){
+      showToast(String(err.message || err));
+    }
+  }
+  var agr = document.getElementById('adminGrantBtn');
+  if(agr){
+    agr.addEventListener('click', function(){
+      var em = (document.getElementById('adminGrantEmail') || {}).value || '';
+      var c = Number((document.getElementById('adminGrantCoins') || {}).value || 0);
+      if(!em){ showToast('Email?'); return; }
+      grantCoinsTo(em.trim(), c);
+    });
+  }
+  var arf = document.getElementById('adminRefreshBtn');
+  if(arf) arf.addEventListener('click', function(){ loadAdminUsers(); });
+  loadAuthConfig();
+
   refreshAuthUI();
 
   /* ============ App state ============ */

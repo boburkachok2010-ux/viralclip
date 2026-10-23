@@ -694,23 +694,110 @@ app.post('/api/auth/login', (req, res) => {
     .trim()
     .toLowerCase();
   const password = String((req.body && req.body.password) || '');
+  if (!email || !password) {
+    return res.status(400).json({
+      error: 'Email and password required',
+      error_ru: 'Введите email и пароль'
+    });
+  }
   const users = readJson('users.json', []);
-  const user = users.find((u) => u.email === email);
-  if (!user || !verifyPassword(password, user.salt, user.hash)) {
+  const user = users.find((u) => String(u.email || '').toLowerCase() === email);
+  if (!user) {
+    return res.status(401).json({
+      error: 'Wrong email or password',
+      error_ru: 'Неверный email или пароль (аккаунт не найден — зарегистрируйтесь)'
+    });
+  }
+  if (user.provider === 'google' && !user.hash) {
+    return res.status(401).json({
+      error: 'This account uses Google Sign-In',
+      error_ru: 'Этот аккаунт через Google — нажмите «Войти через Google»'
+    });
+  }
+  if (!user.salt || !user.hash || !verifyPassword(password, user.salt, user.hash)) {
     return res.status(401).json({
       error: 'Wrong email or password',
       error_ru: 'Неверный email или пароль'
     });
   }
-  const token = signToken({ email: user.email, id: user.id });
+  updateUser(user.email, (u) => {
+    u.lastLoginAt = new Date().toISOString();
+  });
+  const fresh = readJson('users.json', []).find((u) => u.email === user.email) || user;
+  const token = signToken({ email: fresh.email, id: fresh.id });
   res.json({
     ok: true,
     token,
-    user: { id: user.id, email: user.email, name: user.name }
+    user: publicUser(fresh)
   });
 });
 
-// Me
+// Google Sign-In (ID token from GIS)
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const credential = String((req.body && req.body.credential) || '').trim();
+    if (!credential) {
+      return res.status(400).json({ error: 'credential required', error_ru: 'Нет Google credential' });
+    }
+    const clientId = String(process.env.GOOGLE_CLIENT_ID || '').trim();
+    const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential);
+    const gr = await fetch(url);
+    const info = await gr.json().catch(() => ({}));
+    if (!gr.ok || !info.email) {
+      return res.status(401).json({
+        error: 'Invalid Google token',
+        error_ru: 'Не удалось проверить Google-вход'
+      });
+    }
+    if (clientId && info.aud && info.aud !== clientId) {
+      return res.status(401).json({
+        error: 'Google client mismatch',
+        error_ru: 'GOOGLE_CLIENT_ID не совпадает'
+      });
+    }
+    if (String(info.email_verified) !== 'true' && info.email_verified !== true) {
+      // some responses use string "true"
+      if (info.email_verified !== true && info.email_verified !== 'true') {
+        // allow if field missing on older endpoints
+      }
+    }
+    const email = String(info.email).trim().toLowerCase();
+    const name = String(info.name || info.given_name || email.split('@')[0]).slice(0, 60);
+    let users = readJson('users.json', []);
+    let user = users.find((u) => String(u.email || '').toLowerCase() === email);
+    if (!user) {
+      user = {
+        id: crypto.randomBytes(8).toString('hex'),
+        email,
+        name,
+        provider: 'google',
+        googleSub: info.sub || '',
+        coins: SIGNUP_BONUS_COINS,
+        plan: isAdminEmail(email) ? 'studio' : 'free',
+        analysesUsed: 0,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      };
+      users.push(user);
+      writeJson('users.json', users);
+    } else {
+      updateUser(email, (u) => {
+        u.provider = u.provider || 'google';
+        u.googleSub = info.sub || u.googleSub || '';
+        if (!u.name && name) u.name = name;
+        u.lastLoginAt = new Date().toISOString();
+        if (isAdminEmail(email) && u.plan === 'free') u.plan = 'studio';
+      });
+      user = readJson('users.json', []).find((u) => u.email === email) || user;
+    }
+    const token = signToken({ email: user.email, id: user.id });
+    res.json({ ok: true, token, user: publicUser(user) });
+  } catch (err) {
+    console.error('[auth/google]', err.message);
+    res.status(500).json({ error: err.message || 'Google auth failed' });
+  }
+});
+
 app.get('/api/auth/me', (req, res) => {
   const user = authUser(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1206,6 +1293,61 @@ Rules:
     console.error('[account-audit]', err.message);
     res.status(err?.status || 500).json({ error: err.message || 'Account audit failed' });
   }
+});
+
+
+
+// ===== Admin panel API =====
+app.get('/api/admin/users', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const users = readJson('users.json', []);
+  const list = users
+    .map((u) => ({
+      email: u.email,
+      name: u.name || '',
+      coins: Number(u.coins) || 0,
+      plan: u.plan || 'free',
+      provider: u.provider || 'password',
+      analysesUsed: u.analysesUsed || 0,
+      createdAt: u.createdAt || null,
+      lastLoginAt: u.lastLoginAt || null,
+      isAdmin: isAdminEmail(u.email)
+    }))
+    .sort((a, b) => String(b.lastLoginAt || b.createdAt || '').localeCompare(String(a.lastLoginAt || a.createdAt || '')));
+  res.json({ ok: true, total: list.length, users: list });
+});
+
+app.post('/api/admin/grant-coins', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  let coins = Number(req.body && req.body.coins);
+  if (!email || !Number.isFinite(coins)) {
+    return res.status(400).json({ error: 'email and coins required' });
+  }
+  coins = Math.floor(coins);
+  if (coins === 0) {
+    return res.status(400).json({ error: 'coins cannot be 0' });
+  }
+  const users = readJson('users.json', []);
+  const user = users.find((u) => String(u.email || '').toLowerCase() === email);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found', error_ru: 'Пользователь не найден' });
+  }
+  const updated = updateUser(email, (u) => {
+    u.coins = Math.max(0, (Number(u.coins) || 0) + coins);
+  });
+  res.json({
+    ok: true,
+    user: publicUser(updated),
+    message: (coins > 0 ? '+' : '') + coins + ' coins → ' + email
+  });
+});
+
+app.get('/api/auth/config', (req, res) => {
+  res.json({
+    googleClientId: String(process.env.GOOGLE_CLIENT_ID || '').trim() || null,
+    freeMode: String(process.env.FREE_MODE || '1') !== '0'
+  });
 });
 
 
