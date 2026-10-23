@@ -154,18 +154,22 @@
     pointer-events:none;
     opacity:0.95;
   }
-  .hero-phone-left{ left: max(12px, calc(50% - 620px)); }
-  .hero-phone-right{ right: max(12px, calc(50% - 620px)); }
+  .hero-phone-left{ left: max(8px, calc(50% - 680px)); top: 42%; }
+  .hero-phone-right{ right: max(8px, calc(50% - 680px)); top: 48%; }
   @media (min-width: 1100px){
     .hero-phone{ display:block; }
   }
   @media (min-width: 1400px){
-    .hero-phone-left{ left: max(24px, calc(50% - 700px)); }
-    .hero-phone-right{ right: max(24px, calc(50% - 700px)); }
+    .hero-phone-left{ left: max(20px, calc(50% - 760px)); }
+    .hero-phone-right{ right: max(20px, calc(50% - 760px)); }
+  }
+  @media (min-width: 1100px) and (max-width: 1399px){
+    .hero-phone-left{ left: 8px; opacity: 0.75; }
+    .hero-phone-right{ right: 8px; opacity: 0.8; }
   }
   .phone-bezel{
-    width: 168px;
-    height: 340px;
+    width: 150px;
+    height: 304px;
     border-radius: 28px;
     background: linear-gradient(160deg, #2a2a32 0%, #121218 40%, #0a0a0e 100%);
     border: 2px solid rgba(255,255,255,0.12);
@@ -177,13 +181,15 @@
     position: relative;
   }
   .hero-phone-right .phone-bezel{
-    width: 156px;
-    height: 318px;
-    transform: rotate(3deg);
+    width: 142px;
+    height: 288px;
+    transform: rotate(4deg);
   }
   .hero-phone-left .phone-bezel{
-    transform: rotate(-3deg);
+    transform: rotate(-4deg);
   }
+  .hero-phone-left{ opacity: 0.88; }
+  .hero-phone-right{ opacity: 0.9; }
   .phone-notch{
     position:absolute; top:8px; left:50%; transform:translateX(-50%);
     width:54px; height:8px; border-radius:20px;
@@ -1085,34 +1091,34 @@
   gsap.registerPlugin(ScrollTrigger);
 
   /* ============ i18n ============ */
-  var LANG = (function(){ var n=(navigator.language||'').toLowerCase(); if(n.indexOf('ru')===0)return 'ru'; if(n.indexOf('uz')===0)return 'uz'; return 'en'; })();
+  var LANG = (function(){ try{ var s=localStorage.getItem('viralclip_lang'); if(s==='en'||s==='ru'||s==='uz') return s; }catch(e){} var n=(navigator.language||'').toLowerCase(); if(n.indexOf('ru')===0)return 'ru'; if(n.indexOf('uz')===0)return 'uz'; return 'en'; })();
   var I18N = {
     en: {
-      nav_analyze:'Tahlil', 
+      nav_analyze:'Analyze', 
 
- nav_scoring:'Baholash',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
+ nav_scoring:'Scoring',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
       auth_email:'Email', auth_pass:'Password', auth_name:'Name',
       auth_login_btn:'Log in', auth_reg_btn:'Create account',
-      auth_note:'Free beta. No payment yet. Account keeps your access for later.',
+      auth_note:'Free beta. No payment yet.',
 
       hero_eyebrow:'AI video audit · free',
       hero_h1_1:'Your video is', hero_h1_2:'bleeding views.', hero_h1_3:'Find out why.',
       hero_sub:"ViralClip scores your hook, pacing, captions and thumbnail before you post — so you catch the reason a cut flops while it's still an editable timeline, not a dead post.",
       hero_cta1:'Get your free audit →', hero_cta2:'See how it works', scroll_cue:'SCROLL',
       marquee_text:'<b>Hook Strength</b> — Pacing Score — Caption Timing — Audio Clarity — CTA Placement — Thumbnail CTR — ',
-      analyzer_kicker:'Try it now', analyzer_h2:'Drop a clip. Get the audit.',
-      analyzer_p:'Real local analysis: motion, scene cuts, audio envelope, speech-to-text — then scores vs short-form benchmarks.',
-      analyzer_nofile:'no file selected', dz_title:'Drag & drop your video', dz_sub:'or click to browse — MP4, MOV, up to 500MB',
-      swap_btn:'Choose another', cost_label:'Analysis', cost_value:'Free', file_meta_default:'Upload a clip to begin.',
-      analyze_btn:'Analyze video', need_coins_btn:'Analyze video', result_of:'/ 100 overall', another_btn:'Analyze another clip',
+      analyzer_kicker:'Analyze', analyzer_h2:'Upload a clip. Get the weak spots.',
+      analyzer_p:'Short-form video (Reels / Shorts / TikTok). AI checks frames, pacing and speech.',
+      analyzer_nofile:'No file selected', dz_title:'Drag & drop your video', dz_sub:'or click to browse — MP4, MOV, up to 500MB',
+      swap_btn:'Choose another', cost_label:'Cost', cost_value:'Free', file_meta_default:'MP4 or MOV · up to 2 minutes',
+      analyze_btn:'Analyze video', need_coins_btn:'Analyze video', result_of:'/ 100 total', another_btn:'Analyze another clip',
       problem_kicker:'The problem', problem_h2:'You edited for hours. The algorithm judged you in three seconds.',
       problem_p1:"Most creators only find out a cut flopped after it's already buried — by then the dead air in the intro, the caption landing a beat too late, the thumbnail nobody would tap, are all sunk cost.",
-      problem_p2:'ViralClip runs the same read the platform will, before the platform gets the chance — clip by clip, second by second.',
+      problem_p2:'ViralClip runs the same read the platform will, before the post goes out — clip by clip, second by second.',
       three_sec_label:'seconds before a viewer decides to swipe',
       how_kicker:'How it works', how_h2:'One upload, a full breakdown, before you publish.',
       step1_title:'Upload your cut', step1_p:'Drop in your raw edit or final export — vertical, any length, any platform.',
-      step2_title:'The audit runs', step2_p:'The model scores hook, pacing, captions, audio and CTA placement against a library of top-performing shorts.',
-      step3_title:"Fix what's flagged", step3_p:'A clip-by-clip breakdown shows exactly where attention drops — and what to cut, move, or re-time.',
+      step2_title:'The audit runs', step2_p:'The model scores hook, pacing, captions, audio and CTA placement against top-performing clips.',
+      step3_title:"Fix what's flagged", step3_p:'A clip-by-clip breakdown shows exactly where attention drops — and what to cut, move, or retime.',
       scores_kicker:'What gets scored', scores_h2:'Six signals. One number that tells you the truth.',
       scores_p:'Every metric maps to something you can actually change in the edit — not vague advice, a specific timestamp.',
       sc1_label:'Hook Strength', sc1_desc:'Does the first second earn the second one?',
@@ -1120,37 +1126,37 @@
       sc3_label:'Caption Timing', sc3_desc:'Text on screen exactly when the line lands.',
       sc4_label:'Audio Clarity', sc4_desc:'Voice above the mix, no muddy intros.',
       sc5_label:'CTA Placement', sc5_desc:'Follow, comment or link — asked at the right beat.',
-      sc6_label:'Thumbnail CTR', sc6_desc:'The freeze-frame someone sees before they tap.',
+      sc6_label:'Thumbnail', sc6_desc:'Does the still stop the thumb in a feed?',
       compare_kicker:'Same clip, different fate', compare_h2:'Drag to see what three fixes did.',
       after_tag:'After ViralClip', before_tag:'Before', views_lbl:'views:',
-            demo_kicker:'Example audit', demo_h2:'What a frame-by-frame breakdown looks like',
-      demo_p:'Same style of tips you get after uploading your own clip — timestamp, screenshot zone, concrete edit action.',
+            demo_kicker:'Sample audit', demo_h2:'What frame-by-frame looks like',
+      demo_p:'Same style of tips you get after uploading your own clip — with timestamps.',
       demo1_meta:'0:00 · hook · high', demo1_title:'Weak opening frame',
-      demo1_txt:'First second is a static mid-shot with no on-screen promise. Cut the greeting, start on the strongest face/action, and put 3–5 bold words on screen by 0:00.5 so the clip works with sound off.',
+      demo1_txt:'First second is a static mid-shot with no on-screen promise. Cut the greeting; start on a strong face/action and 3–5 bold words by 0:00.5.',
       demo1_tag:'Move payoff to frame 1',
       demo2_meta:'0:07 · pacing · high', demo2_title:'Dead stretch — low motion',
-      demo2_txt:'Same angle holds ~4s with no cut or text change. Add a jump cut, 10% punch-in, or a short text hit on the key word so the eye gets a new beat before the swipe reflex kicks in.',
+      demo2_txt:'Same angle holds ~4s with no cut or text change. Add a jump cut, light punch-in, or short text on a key word.',
       demo2_tag:'Pattern interrupt every 2–3s',
       demo3_meta:'0:12 · captions · mid', demo3_title:'Captions fight the face',
-      demo3_txt:'Long line covers the mouth and sits too low (UI zone). Split into 3–5 word chunks, high contrast, center/upper third, synced to the spoken stress — not a full sentence dumped at once.',
+      demo3_txt:'Long line covers the mouth and sits too low (UI zone). Split to 3–5 words, high contrast, center/upper third.',
       demo3_tag:'Safe zone + shorter lines',
       demo4_meta:'0:18 · cta · high', demo4_title:'No clear CTA after payoff',
-      demo4_txt:'Clip ends on the last tip with no ask. After the main point, hold 1–2s with spoken + on-screen CTA (“save this” / “part 2”) — not “like and subscribe” in the first second.',
+      demo4_txt:'Clip ends on the last tip with no ask. After the main point, 1–2s of speech + text (“save this” / “part 2”).',
       demo4_tag:'CTA in last 15%',
       demo_cta:'Audit your clip →',
-      founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wish someone had handed me back then — built by a creator, not a committee."',
+      founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wished I had then — made by an editor, for editors, not a committee."',
       founder_attr:'— Founder, ViralClip',
-      nav_account_audit:'IG akkaunt',
-      acc_kicker:'Free beta', acc_h2:'Instagram account audit',
-      acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Currently free while we test.',
-      acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (paste current)',
-      acc_stats:'Stats (optional)', acc_posts:'Recent posts / Reels (links or short notes)',
-      acc_live:'Fetch public Instagram profile (Apify)',
+      nav_account_audit:'IG Account',
+      acc_kicker:'Free · beta', acc_h2:'Instagram account audit',
+      acc_p:'Not one video — the whole profile: bio, pillars, hooks, grid, CTA. Free for now.',
+      acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (current)',
+      acc_stats:'Stats (optional)', acc_posts:'Recent posts / Reels',
+      acc_live:'Pull public Instagram profile (Apify)',
       acc_btn:'Run account audit', acc_hint:'Free for now. Does not replace video frame analysis.',
       acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
-      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
+      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Content pillars', acc_week:'7-day plan',
       acc_running:'Auditing account…', acc_err:'Account audit failed',
-      pricing_kicker:'Pricing', pricing_h2:'Pay per audit, or go unlimited.', pricing_p:'New accounts start with 30 free coins. One analysis costs 10.',
+      pricing_kicker:'Pricing', pricing_h2:'Everything is free for now.', pricing_p:'Payments are temporarily disabled.',
       tab_coins:'Coin packs', tab_sub:'Subscription',
       pack1_name:'Starter pack', pack1_amt:'/ 50 coins', pack1_f1:'5 full audits', pack_f2:'Score breakdown by metric', pack1_f3:'No expiry', pack1_btn:'Buy 50 coins',
       best_value:'Best value', pack2_name:'Creator pack', pack2_amt:'/ 150 coins', pack2_f1:'15 full audits', pack2_f3:'Priority processing', pack2_btn:'Buy 150 coins',
@@ -1158,8 +1164,8 @@
       sub1_name:'Free', per_mo:'/ mo', sub1_f1:'30 coins on signup', sub1_f2:'Pay-as-you-go after', sub1_f3:'Standard processing', current_plan:'Current plan',
       most_popular:'Most popular', sub2_name:'Creator', unlimited_audits:'Unlimited audits', full_history:'Full history', sub2_btn:'Subscribe — $12/mo',
       sub3_name:'Studio', team_seats:'Team seats (5)', api_access:'API access', sub3_btn:'Subscribe — $29/mo',
-      join_kicker:'Join the waitlist', join_h2:'Stop guessing why a clip flopped.', join_p:'Free beta. Join the list or create an account (top right) — no card.',
-      join_email_ph:'you@domain.com', join_btn:'Join waitlist →', join_note:'early access rolls out weekly · unsubscribe anytime',
+      join_kicker:'Join the waitlist', join_h2:'Join the waitlist', join_p:'We\'ll tell you about updates and launch.',
+      join_email_ph:'you@domain.com', join_btn:'Join', join_note:'early access rolls out weekly · unsubscribe anytime',
       join_success:"✓ You're on the list — check your inbox soon.",
       foot_product:'Product', foot_scoring:'Scoring', foot_waitlist:'Waitlist',
       paywall_title:'', paywall_sub:'',
@@ -1512,8 +1518,9 @@
 
   function applyLanguage(lang){
     LANG = lang;
+    try { localStorage.setItem('viralclip_lang', lang); } catch(e){}
     document.documentElement.lang = lang;
-    var dict = I18N[lang] || I18N.ru || I18N.en || {};
+    var dict = I18N[lang] || I18N.en || I18N.ru || {};
     document.querySelectorAll('[data-i18n]').forEach(function(el){
       var key = el.getAttribute('data-i18n');
       if(dict[key] !== undefined) el.textContent = dict[key];
