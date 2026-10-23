@@ -3558,14 +3558,22 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         var sc = js.scores || {};
         var bars = document.getElementById('accBars');
         if(bars){
+          var L = (typeof LANG!=='undefined'?LANG:'ru');
+          var lab = L==='en' ? {
+            pos:'Position', pil:'Pillars', hook:'Hooks', rhy:'Rhythm', grid:'Grid', cta:'CTA', uniq:'Unique'
+          } : (L==='uz' ? {
+            pos:'Pozitsiya', pil:'Ustunlar', hook:'Hooklar', rhy:'Ritm', grid:'Setka', cta:'CTA', uniq:'Unikal'
+          } : {
+            pos:'Позиция', pil:'Столпы', hook:'Хуки', rhy:'Ритм', grid:'Сетка', cta:'CTA', uniq:'Уникальность'
+          });
           bars.innerHTML = [
-            barRow('Position', sc.positioning),
-            barRow('Pillars', sc.content_pillars),
-            barRow('Hooks', sc.hooks_pattern),
-            barRow('Rhythm', sc.posting_rhythm),
-            barRow('Grid', sc.visual_grid),
-            barRow('CTA', sc.cta_funnel),
-            barRow('Unique', sc.differentiation)
+            barRow(lab.pos, sc.positioning),
+            barRow(lab.pil, sc.content_pillars),
+            barRow(lab.hook, sc.hooks_pattern),
+            barRow(lab.rhy, sc.posting_rhythm),
+            barRow(lab.grid, sc.visual_grid),
+            barRow(lab.cta, sc.cta_funnel),
+            barRow(lab.uniq, sc.differentiation)
           ].join('');
         }
         function fillList(id, arr){

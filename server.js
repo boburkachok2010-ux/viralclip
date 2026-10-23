@@ -1075,13 +1075,26 @@ Rank by impact × confidence / effort. Lead with Top-3 highest leverage.
 Separate quick wins vs strategic vs experiments.
 No guaranteed follower/view/sales promises.
 
-8. LANGUAGE
-Write ALL user-facing text in ${langName}.
-Use the account's language for sample bio/hooks/captions when identifiable.
+8. LANGUAGE (ABSOLUTE RULE — overrides all examples)
+Target language: ${langName} (code: ${language}).
+ALL of these MUST be 100% in ${langName}:
+account_profile, summary, strengths[], weaknesses[], actions[].title, actions[].detail, actions[].kpi,
+bio_rewrite, content_pillars_suggested[], content_ideas (topic/hook/cta/why), 7_day_plan[], missing_data[].
+Do NOT mix languages. Do NOT leave English filler if target is Russian or Uzbek.
+If target is Russian — write natural Russian, not English with Russian words.
+If target is Uzbek — write natural Uzbek (o'zbek tili), not Russian or English.
+JSON keys stay in English; VALUES are in ${langName}.
+For actions.detail use localized labels:
+- en: OBSERVATION / EVIDENCE / DIAGNOSIS / ACTION / EXAMPLE / MEASURE
+- ru: НАБЛЮДЕНИЕ / ДОКАЗАТЕЛЬСТВО / ДИАГНОЗ / ДЕЙСТВИЕ / ПРИМЕР / ЗАМЕР
+- uz: KUZATUV / DALIL / DIAGNOZ / HARAKAT / MISOL / O'LCHOV
 
 OUTPUT: JSON only (no markdown fences).`;
 
     const userPrompt = `OUTPUT_MODE = JSON
+CRITICAL LANGUAGE LOCK: Write every user-facing string value in ${langName} only (${language}).
+If language=ru → pure Russian. If language=uz → pure Uzbek. If language=en → English.
+English examples below are SCHEMA only — translate all values into ${langName}.
 
 Audit this Instagram account with the full Intelligence Auditor process.
 Data source: ${liveNote}
@@ -1137,14 +1150,15 @@ Return ONLY this JSON shape:
 
 Rules:
 - Exactly 6–8 actions; at least 3 high or mid; first three = highest leverage for stated goal.
-- content_ideas: 3–5 ideas unique to this niche/goal — not generic "5 tips".
+- content_ideas: 3–5 ideas unique to this niche/goal — not generic tips.
 - If data is thin, say so in summary; do not invent certainty or numbers.
 - Never invent follower counts or engagement numbers not in the input.
-- Detail field must follow OBSERVATION/EVIDENCE/DIAGNOSIS/ACTION/EXAMPLE/MEASURE structure in compact form.`;
+- Detail field must use the localized labels for ${language} (see system prompt).
+- FINAL CHECK: if any strength/weakness/action/summary is in the wrong language, rewrite it into ${langName} before answering.`;
 
     const completion = await client().chat.completions.create({
       model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
-      temperature: 0.35,
+      temperature: 0.3,
       max_tokens: 4000,
       response_format: { type: 'json_object' },
       messages: [
