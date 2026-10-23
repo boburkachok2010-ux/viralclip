@@ -585,6 +585,21 @@ const PRODUCTS = {
   studio:  { kind: 'sub',  coins: 350, amountUsd: 24, name: 'Studio monthly + Instagram account audit', interval: 'month' }
 };
 
+function adminEmails() {
+  const raw = String(process.env.ADMIN_EMAILS || 'boburkachok2010@gmail.com').toLowerCase();
+  return raw.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+}
+function isAdminEmail(email) {
+  return adminEmails().includes(String(email || '').toLowerCase());
+}
+function requireAdmin(req, res) {
+  const user = authUser(req);
+  if (!user || !isAdminEmail(user.email)) {
+    res.status(403).json({ error: 'Admin only', error_ru: 'Только для админа' });
+    return null;
+  }
+  return user;
+}
 function publicUser(u) {
   if (!u) return null;
   return {
@@ -594,7 +609,11 @@ function publicUser(u) {
     coins: Number(u.coins) || 0,
     plan: u.plan || 'free',
     planExpires: u.planExpires || null,
-    analysesUsed: u.analysesUsed || 0
+    analysesUsed: u.analysesUsed || 0,
+    provider: u.provider || 'password',
+    isAdmin: isAdminEmail(u.email),
+    createdAt: u.createdAt || null,
+    lastLoginAt: u.lastLoginAt || null
   };
 }
 
@@ -666,10 +685,12 @@ app.post('/api/auth/register', (req, res) => {
     name: name || email.split('@')[0],
     salt,
     hash,
+    provider: 'password',
     createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
     analysesUsed: 0,
     coins: SIGNUP_BONUS_COINS,
-    plan: 'free',
+    plan: isAdminEmail(email) ? 'studio' : 'free',
     planExpires: null
   };
   users.push(user);
@@ -1360,6 +1381,7 @@ app.get('*', (req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ViralClip http://localhost:${PORT} (also LAN via your PC IP)`);
+  console.log('Admin emails:', adminEmails().join(', ') || '(none)');
   console.log(
     hasKey()
       ? 'OpenAI key: configured'
