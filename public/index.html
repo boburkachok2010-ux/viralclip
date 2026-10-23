@@ -858,9 +858,7 @@
         <div id="accUserLabel" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent-2);"></div>
         <div id="accDataSource" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
       </div>
-      <p id="accProfile" style="margin-top:10px;font-size:12px;color:var(--accent-2);font-family:'JetBrains Mono',monospace;line-height:1.4;"></p>
-      <p id="accSummary" style="margin-top:10px;font-size:14px;line-height:1.55;color:var(--text);"></p>
-      <div id="accIdeas" style="margin-top:14px;"></div>
+      <p id="accSummary" style="margin-top:14px;font-size:14px;line-height:1.55;color:var(--text);"></p>
       <div class="acc-bars" id="accBars"></div>
       <h3 style="margin:20px 0 0;font-size:15px;" data-i18n="acc_strengths">Strengths</h3>
       <ul class="acc-list" id="accStrengths"></ul>
@@ -1021,7 +1019,7 @@
       acc_live:'Fetch public Instagram profile (Apify)',
       acc_btn:'Run account audit', acc_hint:'Free for now. Does not replace video frame analysis.',
       acc_score_label:'Account score', acc_strengths:'Strengths', acc_weak:'Weaknesses',
-      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_ideas:'Content ideas', acc_week:'7-day plan',
+      acc_actions:'Priority actions', acc_bio_new:'Bio rewrite', acc_pillars:'Suggested pillars', acc_week:'7-day plan',
       acc_running:'Auditing account…', acc_err:'Account audit failed',
       pricing_kicker:'Pricing', pricing_h2:'Pay per audit, or go unlimited.', pricing_p:'New accounts start with 30 free coins. One analysis costs 10.',
       tab_coins:'Coin packs', tab_sub:'Subscription',
@@ -1122,7 +1120,7 @@
       acc_live:'Подтянуть публичный профиль из Instagram (Apify)',
       acc_btn:'Запустить аудит аккаунта', acc_hint:'Пока бесплатно. Не заменяет покадровый разбор видео.',
       acc_score_label:'Оценка аккаунта', acc_strengths:'Сильные стороны', acc_weak:'Слабые стороны',
-      acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_ideas:'Идеи контента', acc_week:'План на 7 дней',
+      acc_actions:'Приоритетные действия', acc_bio_new:'Вариант bio', acc_pillars:'Столпы контента', acc_week:'План на 7 дней',
       acc_running:'Анализируем аккаунт…', acc_err:'Не удалось сделать аудит аккаунта',
       pricing_kicker:'Тарифы', pricing_h2:'Платите за аудит — или берите безлимит.', pricing_p:'Новый аккаунт получает 30 монет бесплатно. Один анализ стоит 10.',
       tab_coins:'Пакеты монет', tab_sub:'Подписка',
@@ -1161,53 +1159,35 @@
       strength_audio:'Голос чисто сидит над подложкой, без клиппинга и «грязи».',
       strength_cta:'CTA стоит после кульминации — правильное место для удержания.',
       strength_thumb:'Стоп-кадр обложки с чёткой эмоцией и высоким контрастом.'
-    }
-  ,
+    },
   uz: {
     nav_analyze:'Tahlil',
     nav_scoring:'Baholash',
-    nav_try:'Bepul sinab ko\'ring',
+    nav_account_audit:'IG akkaunt',
+    nav_pricing:'Narxlar',
     nav_account:'Kirish',
-    nav_logout:'Log out',
+    nav_logout:'Chiqish',
+    nav_try:'Bepul sinab ko\'ring',
+    hero_eyebrow:'AI video audit · bepul',
+    hero_h1_1:'Videongiz',
+    hero_h1_2:'ko\'rishlarni yo\'qotmoqda.',
+    hero_h1_3:'Nima uchunligini biling.',
+    hero_sub:'ViralClip joylashtirishdan oldin hook, temp, subtitr va thumbnailni baholaydi — xato tahrirda tuzatiladi, o\'lik postda emas.',
+    hero_cta:'Videoni tahlil qilish',
+    hero_secondary:'Qanday ishlaydi',
+    analyzer_kicker:'Tahlil',
+    analyzer_h2:'Rolikni yuklang. Zaif joylarni oling.',
+    analyzer_p:'Qisqa videolar (Reels / Shorts / TikTok). AI kadrlar, temp va nutqni tekshiradi.',
+    analyzer_nofile:'Fayl tanlanmagan',
+    analyze_btn:'Videoni tahlil qilish',
+    another_btn:'Yana bir klip tahlil qilish',
+    file_meta_default:'MP4 yoki MOV · 2 daqiqagacha',
     auth_email:'Email',
     auth_pass:'Parol',
     auth_name:'Ism',
     auth_login_btn:'Kirish',
     auth_reg_btn:'Akkount yaratish',
     auth_note:'Bepul beta. Hozircha to\'lov yo\'q.',
-    hero_eyebrow:'AI video audit · bepul',
-    hero_h1_1:'Videongiz',
-    hero_h1_2:'ko\'rishlarni yo\'qotmoqda.',
-    hero_h1_3:'Nima uchunligini biling.',
-    hero_cta1:'Get your free audit →',
-    hero_cta2:'See how it works',
-    scroll_cue:'SCROLL',
-    marquee_text:'<b>Hook Strength</b> — Pacing Score — Caption Timing — Audio Clarity — CTA Placement — Thumbnail CTR — ',
-    analyzer_kicker:'Tahlil',
-    analyzer_h2:'Rolikni yuklang. Zaif joylarni oling.',
-    analyzer_p:'Qisqa videolar (Reels / Shorts / TikTok). AI kadrlar, temp va nutqni tekshiradi.',
-    analyzer_nofile:'Fayl tanlanmagan',
-    dz_title:'Drag & drop your video',
-    dz_sub:'or click to browse — MP4, MOV, up to 500MB',
-    swap_btn:'Choose another',
-    cost_label:'Narx',
-    cost_value:'Bepul',
-    file_meta_default:'MP4 yoki MOV · 2 daqiqagacha',
-    analyze_btn:'Videoni tahlil qilish',
-    need_coins_btn:'Analyze video',
-    result_of:'/ 100 jami',
-    another_btn:'Yana bir klip tahlil qilish',
-    problem_kicker:'The problem',
-    problem_h2:'You edited for hours. The algorithm judged you in three seconds.',
-    problem_p2:'ViralClip runs the same read the platform will, before the platform gets the chance — clip by clip, second by second.',
-    three_sec_label:'seconds before a viewer decides to swipe',
-    how_kicker:'How it works',
-    how_h2:'One upload, a full breakdown, before you publish.',
-    step1_title:'Upload your cut',
-    step1_p:'Drop in your raw edit or final export — vertical, any length, any platform.',
-    step2_title:'The audit runs',
-    step2_p:'The model scores hook, pacing, captions, audio and CTA placement against a library of top-performing shorts.',
-    step3_p:'A clip-by-clip breakdown shows exactly where attention drops — and what to cut, move, or re-time.',
     scores_kicker:'Nima baholanadi',
     scores_h2:'Olti signal. Bitta haqiqat raqami.',
     scores_p:'Har bir metrika tahrirda o\'zgartirish mumkin bo\'lgan narsaga bog\'langan.',
@@ -1218,39 +1198,13 @@
     sc3_label:'Subtitr vaqti',
     sc3_desc:'Matn ekranda aynan gap tushganda.',
     sc4_label:'Audio aniqlik',
-    sc4_desc:'Ovoz miksda ustun, xira intro yo\'q.',
+    sc4_desc:'Ovoz miksda ustun, xira intro yo‘q.',
     sc5_label:'CTA joylashuvi',
     sc5_desc:'Obuna, izoh yoki havola — to\'g\'ri paytda.',
     sc6_label:'Thumbnail',
     sc6_desc:'Stop-kadr lenta ichida to\'xtatadimi?',
-    compare_kicker:'Same clip, different fate',
-    compare_h2:'Drag to see what three fixes did.',
-    after_tag:'After ViralClip',
-    before_tag:'Before',
-    views_lbl:'views:',
     demo_kicker:'Namuna tahlil',
     demo_h2:'Kadrma-kadr qanday ko\'rinadi',
-    demo_p:'Same style of tips you get after uploading your own clip — timestamp, screenshot zone, concrete edit action.',
-    demo1_meta:'0:00 · hook · high',
-    demo1_title:'Weak opening frame',
-    demo1_txt:'First second is a static mid-shot with no on-screen promise. Cut the greeting, start on the strongest face/action, and put 3–5 bold words on screen by 0:00.5 so the clip works with sound off.',
-    demo1_tag:'Move payoff to frame 1',
-    demo2_meta:'0:07 · pacing · high',
-    demo2_title:'Dead stretch — low motion',
-    demo2_txt:'Same angle holds ~4s with no cut or text change. Add a jump cut, 10% punch-in, or a short text hit on the key word so the eye gets a new beat before the swipe reflex kicks in.',
-    demo2_tag:'Pattern interrupt every 2–3s',
-    demo3_meta:'0:12 · captions · mid',
-    demo3_title:'Captions fight the face',
-    demo3_txt:'Long line covers the mouth and sits too low (UI zone). Split into 3–5 word chunks, high contrast, center/upper third, synced to the spoken stress — not a full sentence dumped at once.',
-    demo3_tag:'Safe zone + shorter lines',
-    demo4_meta:'0:18 · cta · high',
-    demo4_title:'No clear CTA after payoff',
-    demo4_txt:'Clip ends on the last tip with no ask. After the main point, hold 1–2s with spoken + on-screen CTA (“save this” / “part 2”) — not “like and subscribe” in the first second.',
-    demo4_tag:'CTA in last 15%',
-    demo_cta:'Audit your clip →',
-    founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wish someone had handed me back then — built by a creator, not a committee."',
-    founder_attr:'— Founder, ViralClip',
-    nav_account_audit:'IG akkaunt',
     acc_kicker:'Bepul · beta',
     acc_h2:'Instagram akkaunt auditi',
     acc_p:'Bitta video emas — butun profil: bio, ustunlar, hooklar, setka, CTA. Hozircha bepul.',
@@ -1260,7 +1214,6 @@
     acc_bio:'Bio (joriy matn)',
     acc_stats:'Statistika (ixtiyoriy)',
     acc_posts:'So\'nggi postlar / Reels',
-    acc_live:'Ommaviy Instagram profilini tortish (Apify)',
     acc_btn:'Akkaunt auditini ishga tushirish',
     acc_hint:'Hozircha bepul. Video kadr tahlilini almashtirmaydi.',
     acc_score_label:'Akkaunt bahosi',
@@ -1271,131 +1224,18 @@
     acc_pillars:'Kontent ustunlari',
     acc_ideas:'Kontent g\'oyalari',
     acc_week:'7 kunlik reja',
+    acc_live:'Ommaviy Instagram profilini tortish (Apify)',
     acc_running:'Akkaunt tahlil qilinmoqda…',
-    acc_err:'Akkaunt auditini bajarib bo\'lmadi',
-    pricing_kicker:'Pricing',
-    pricing_h2:'Pay per audit, or go unlimited.',
-    pricing_p:'New accounts start with 30 free coins. One analysis costs 10.',
-    tab_coins:'Coin packs',
-    tab_sub:'Subscription',
-    pack1_name:'Starter pack',
-    pack1_amt:'/ 50 coins',
-    pack1_f1:'5 full audits',
-    pack_f2:'Score breakdown by metric',
-    pack1_f3:'No expiry',
-    pack1_btn:'Buy 50 coins',
-    best_value:'Best value',
-    pack2_name:'Creator pack',
-    pack2_amt:'/ 150 coins',
-    pack2_f1:'15 full audits',
-    pack2_f3:'Priority processing',
-    pack2_btn:'Buy 150 coins',
-    pack3_name:'Studio pack',
-    pack3_amt:'/ 400 coins',
-    pack3_f1:'40 full audits',
-    pack3_btn:'Buy 400 coins',
-    sub1_name:'Free',
-    per_mo:'/ mo',
-    sub1_f1:'30 coins on signup',
-    sub1_f2:'Pay-as-you-go after',
-    sub1_f3:'Standard processing',
-    current_plan:'Current plan',
-    most_popular:'Most popular',
-    sub2_name:'Creator',
-    unlimited_audits:'Unlimited audits',
-    full_history:'Full history',
-    sub2_btn:'Subscribe — $12/mo',
-    sub3_name:'Studio',
-    team_seats:'Team seats (5)',
-    api_access:'API access',
-    sub3_btn:'Subscribe — $29/mo',
-    join_kicker:'Join the waitlist',
     join_h2:'Kutish ro\'yxatiga qo\'shiling',
     join_p:'Yangilanishlar va ochilish haqida xabar beramiz.',
-    join_email_ph:'you@domain.com',
     join_btn:'Qo\'shilish',
-    join_note:'early access rolls out weekly · unsubscribe anytime',
-    foot_product:'Product',
-    foot_scoring:'Scoring',
-    foot_waitlist:'Waitlist',
-    paywall_title:'',
-    paywall_sub:'',
-    paywall_pack1:'5 audits',
-    paywall_pack2:'15 audits · best value',
-    paywall_see_plans:'See all plans',
-    confirm_btn:'Confirm',
-    toast_choose_video:'Please choose a video file',
+    footer_tag:'ViralClip · bepul beta',
     toast_audit_done:'✓ Audit tayyor',
-    toast_audit_done_coins:'✓ Audit complete',
-    toast_sub_done:'✓ Subscribed — unlimited audits unlocked',
-    sub_confirm_title:'Confirm subscription',
-    sub_confirm_sub:'Unlimited audits while active (demo checkout, no real charge).',
-    toast_too_long:'That clip is over 1 minute — trim it and upload again.',
-    file_warn_too_long:'Too long — 1 min max for now',
-    reco_title:'Critical issues & fixes',
-    strengths_title:'What already works',
-    style_preview_title:'Caption styles matched to this clip',
-    ft_h:'Key frames from your clip',
-    iss_bad:'Needs fix',
-    iss_good:'Working',
-    fix_l:'What to do',
-    strength_hook:'Strong opening energy — the first second already has movement and a clear subject.',
-    strength_pacing:'Cut frequency sits in the viral range (≈1 cut / 1.2–1.8s).',
-    strength_captions:'Caption timing is tight; text lands within 80ms of the spoken line.',
-    strength_audio:'Voice sits cleanly above the bed; no obvious clipping or mud.',
-    strength_cta:'CTA appears after the payoff — correct placement for retention.',
-    strength_thumb:'Thumbnail frame has clear expression and high contrast.',
-    hero_sub:'ViralClip joylashtirishdan oldin hook, temp, subtitr va thumbnailni baholaydi — xato tahrirda tuzatiladi, o\'lik postda emas.',
-    problem_p1:'Большинство авторов узнают о провале клипа только когда он уже похоронен алгоритмом — а мёртвый воздух во вступлении, субтитр с опозданием на секунду, обложка, на которую никто бы не нажал, уже не исправить.',
-    step3_title:'Исправьте отмеченное',
-    join_success:'✓ Вы в списке — письмо придёт совсем скоро.',
-    limit_note:'До 1 мин · Реальный анализ: кадры, движение, сцены, аудио, речь (Whisper на сервере, если настроен)',
-    txt:'Cut the first 0.4–0.6s of wind-up. Open on the most visual frame and add a quick snap-zoom (scale 1→1.08 over 150ms).',
-    cls:'demo-pop',
-    font:'Poppins ExtraBold',
-    nameEn:'Pop & Punch',
-    nameRu:'Pop & Punch',
-    demoEn:'best edit ever',
-    demoRu:'лучший монтаж',
-    behavior:'smooth',
-    ease:'power3.out',
-    start:'top 92%',
-    trigger:'.three-second',
-    API_BASE:'',
-    method:'POST',
-    en:'Hook examples',
-    ru:'Примеры хуков',
-    u:'https://www.youtube.com/results?search_query=tiktok+hook+examples',
-    type:'audio/webm',
-    VIRALCLIP_API:'',
-    text:'',
-    engine:'none',
-    task:'transcribe',
-    AI:' + (aiPack.tips ? aiPack.tips.length : 0) + ',
-    ответил:' + (aiErr.message || aiErr) + ',
-    failed:' + (aiErr.message || aiErr) + ',
-    phase:'hook',
-    Жанр:' : ',
-    Genre:') + aiPack.genre;
-          issueList.appendChild(g);
-        }
-        if(aiPack.overall){
-          var ov = document.createElement(',
-    block:'nearest',
-    Overall:'+(overall||',
-    NAME:'+(iss.key||',
-    COMMENT:'+((iss.text||',
-    width:'+size+',
-    height:'+size+',
-    background:'+col+',
-    left:'+cx+',
-    top:'+cy+',
-    LANG:'ru',
-    overall_score:'—',
-    KPI:'+String(a.kpi).replace(/</g,',
-    данных:':',
-    data:')+md.join('
-  }};
+    result_of:'/ 100 jami',
+    cost_label:'Narx',
+    cost_value:'Bepul'
+  }
+  };
 
   /* Dynamic recommendation pools (EN + RU) — chosen by seed */
   var RECO_POOL = {
@@ -3654,19 +3494,6 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         }
         var sum = document.getElementById('accSummary');
         if(sum) sum.textContent = js.summary || '';
-        var ap = document.getElementById('accProfile');
-        if(ap) ap.textContent = js.account_profile || '';
-        var ideas = document.getElementById('accIdeas');
-        if(ideas){
-          if(js.content_ideas && js.content_ideas.length){
-            ideas.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">'+(LANG==='ru'?'Идеи контента':'Content ideas')+'</div>' +
-              js.content_ideas.map(function(c){
-                return '<div class="acc-action"><h4>['+String(c.format||'Post').replace(/</g,'&lt;')+'] '+String(c.topic||'').replace(/</g,'&lt;')+'</h4>'
-                  +'<p><b>Hook:</b> '+String(c.hook||'').replace(/</g,'&lt;')+'</p>'
-                  +'<p><b>CTA:</b> '+String(c.cta||'').replace(/</g,'&lt;')+' · '+String(c.why||'').replace(/</g,'&lt;')+'</p></div>';
-              }).join('');
-          } else { ideas.innerHTML = ''; }
-        }
         var sc = js.scores || {};
         var bars = document.getElementById('accBars');
         if(bars){
@@ -3690,42 +3517,16 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         var act = document.getElementById('accActions');
         if(act){
           act.innerHTML = (js.actions||[]).map(function(a){
-            var det = String(a.detail||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-            var kpi = a.kpi ? '<br><span style="opacity:.75">KPI: '+String(a.kpi).replace(/</g,'&lt;')+'</span>' : '';
-            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+det+kpi+'</p></div>';
+            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div>';
           }).join('') || '<p style="color:var(--muted)">—</p>';
         }
         var bn = document.getElementById('accBioNew');
         if(bn) bn.textContent = js.bio_rewrite || '—';
         var pl = document.getElementById('accPillars');
         if(pl) pl.textContent = (js.pillars||[]).join(' · ') || '—';
-        var ideas = document.getElementById('accIdeas');
-        if(ideas){
-          var arr = js.content_ideas || [];
-          ideas.innerHTML = arr.length ? arr.map(function(idea){
-            var f = String(idea.format||'').replace(/</g,'&lt;');
-            var t = String(idea.topic||'').replace(/</g,'&lt;');
-            var h = String(idea.hook||'').replace(/</g,'&lt;');
-            var c = String(idea.cta||'').replace(/</g,'&lt;');
-            var w = String(idea.why||'').replace(/</g,'&lt;');
-            return '<div class="acc-action"><h4>['+f+'] '+t+'</h4><p><b>Hook:</b> '+h+'<br><b>CTA:</b> '+c+'<br>'+w+'</p></div>';
-          }).join('') : '<p style="color:var(--muted);font-size:13px">—</p>';
-        }
         var week = document.getElementById('accWeek');
         if(week){
           week.innerHTML = (js.plan7||[]).map(function(x){ return '<li>'+String(x).replace(/</g,'&lt;')+'</li>'; }).join('') || '<li>—</li>';
-        }
-        var miss = document.getElementById('accMissing');
-        if(miss){
-          var md = js.missing_data || [];
-          miss.textContent = md.length ? ((LANG==='ru'?'Не хватает данных: ':'Missing data: ')+md.join('; ')) : '';
-        }
-        // show account profile under score if present
-        if(js.account_profile){
-          var sumEl = document.getElementById('accSummary');
-          if(sumEl && sumEl.textContent.indexOf(js.account_profile) !== 0){
-            sumEl.textContent = js.account_profile + '\n\n' + (js.summary || '');
-          }
         }
         box.scrollIntoView({ behavior:'smooth', block:'nearest' });
         showToast(LANG==='ru' ? '✓ Аудит аккаунта готов' : '✓ Account audit ready');
