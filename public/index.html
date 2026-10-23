@@ -170,7 +170,7 @@
     padding:15px 24px;border-radius:100px;display:inline-flex;align-items:center;gap:10px;
     background:transparent;font-family:'Inter',sans-serif;
   }
-  .hero-canvas-wrap{position:relative;height:min(480px,52vw);min-height:280px;}
+  .hero-canvas-wrap{position:relative;height:min(520px,56vw);min-height:320px;aspect-ratio:1/1;max-width:520px;margin-left:auto;}
   .hero-canvas-wrap::before{
     content:'';position:absolute;top:50%;left:50%;width:72%;aspect-ratio:1;
     transform:translate(-50%,-50%);border-radius:50%;
@@ -959,9 +959,9 @@
   var LANG = (function(){ var n=(navigator.language||'').toLowerCase(); if(n.indexOf('ru')===0)return 'ru'; if(n.indexOf('uz')===0)return 'uz'; return 'en'; })();
   var I18N = {
     en: {
-      nav_analyze:'Analyze', 
+      nav_analyze:'Tahlil', 
 
- nav_scoring:'Scoring',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
+ nav_scoring:'Baholash',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
       auth_email:'Email', auth_pass:'Password', auth_name:'Name',
       auth_login_btn:'Log in', auth_reg_btn:'Create account',
       auth_note:'Free beta. No payment yet. Account keeps your access for later.',
@@ -1011,7 +1011,7 @@
       demo_cta:'Audit your clip →',
       founder_quote:'"I\'ve been editing other people\'s channels since I was fourteen. ViralClip is the tool I wish someone had handed me back then — built by a creator, not a committee."',
       founder_attr:'— Founder, ViralClip',
-      nav_account_audit:'IG Account',
+      nav_account_audit:'IG akkaunt',
       acc_kicker:'Free beta', acc_h2:'Instagram account audit',
       acc_p:'Not one video — the whole profile: bio, pillars, hooks pattern, grid, CTA. Currently free while we test.',
       acc_user:'Instagram username', acc_niche:'Niche', acc_goal:'Goal', acc_bio:'Bio (paste current)',
@@ -1234,7 +1234,61 @@
     result_of:'/ 100 jami',
     cost_label:'Narx',
     cost_value:'Bepul'
-  }
+  ,
+    demo1_meta:'0:00 · hook · muhim',
+    demo1_tag:'Kuchli lahzani 1-kadrga',
+    demo1_title:'Zaif ochilish kadri',
+    demo1_txt:'Birinchi soniya — statik o\'rta plan, ekranda va\'da yo\'q. Salomni olib tashlang, kuchli yuz/harakat va 0:00.5 da 3–5 so\'zlik matn qo\'ying.',
+    demo2_meta:'0:07 · pacing · muhim',
+    demo2_tag:'Har 2–3 soniyada o\'zgarish',
+    demo2_title:'O\'lik joy — kam harakat',
+    demo2_txt:'Bir rakurs ~4s reza va matn o\'zgarishisiz. Jump cut, engil punch-in yoki kalit so\'zga qisqa matn qo\'shing.',
+    demo3_meta:'0:12 · captions · o\'rta',
+    demo3_tag:'Safe-zone + qisqa qatorlar',
+    demo3_title:'Subtitr yuzni yopadi',
+    demo3_txt:'Uzun qator og\'izni yopadi va past (UI zona). 3–5 so\'z, yuqori kontrast, markaz/yuqori — butun paragraf emas.',
+    demo4_meta:'0:18 · cta · muhim',
+    demo4_tag:'CTA oxirgi 15%',
+    demo4_title:'Payoffdan keyin CTA yo\'q',
+    demo4_txt:'Rolik oxirgi maslahatda uziladi. Asosiy fikrdan keyin 1–2s: nutq + matn («saqlang» / «2-qism»).',
+    demo_cta:'Klipingizni tekshiring →',
+    demo_p:'O\'z klipingizni yuklagandan keyin oladigan maslahatlarning xuddi shu formati — vaqt belgilari bilan.',
+    dz_sub:'yoki bosing — MP4, MOV, 500MB gacha',
+    dz_title:'Videoni shu yerga tashlang',
+    foot_product:'Mahsulot',
+    foot_scoring:'Baholash',
+    foot_waitlist:'Ro\'yxat',
+    founder_attr:'— ViralClip asoschisi',
+    founder_quote:'«Men o\'n to\'rt yoshimdan boshqalarning kanallarini montaj qilaman. ViralClip — o\'shanda bo\'lishini xohlagan vosita: mualliflar uchun, komitet uchun emas.»',
+    ft_h:'Klipingizdagi asosiy kadrlar',
+    hero_cta1:'Bepul audit →',
+    hero_cta2:'Qanday ishlaydi',
+    how_h2:'Bitta yuklash — to\'liq tahlil, nashrdan oldin.',
+    how_kicker:'Qanday ishlaydi',
+    join_kicker:'Kutish ro\'yxati',
+    join_note:'har hafta ochiladi · istalgan vaqtda chiqish mumkin',
+    join_success:'✓ Ro\'yxatdasiz — tez orada emailni tekshiring.',
+    limit_note:'Hozircha bepul beta.',
+    pricing_h2:'Hozircha hammasi bepul.',
+    pricing_kicker:'Narxlar',
+    pricing_p:'To\'lov vaqtinchalik o\'chirilgan.',
+    problem_h2:'Soatlab montaj. Uch soniyada hukm.',
+    problem_kicker:'Muammo',
+    problem_p1:'Ko\'p ijodkorlar klip muvaffaqiyatsizligini faqat joylagandan keyin bilishadi — tuzatib bo\'lmaydi.',
+    problem_p2:'ViralClip platforma qiladigan tahlilni nashrdan OLDIN qiladi — klipma-klip, soniyama-soniya.',
+    reco_title:'Muhim muammolar va tuzatishlar',
+    scroll_cue:'PASTGA',
+    step1_p:'Xom montaj yoki final eksportni yuklang — vertikal, istalgan uzunlik, istalgan platforma.',
+    step1_title:'Klipni yuklang',
+    step2_p:'Model hook, temp, subtitr, ovoz va CTA ni baholaydi — top roliklar bazasi bilan solishtiradi.',
+    step2_title:'Audit ketmoqda',
+    step3_p:'Qadam-baqadam tahlil e\'tibor qayerda tushishini va nima kesish/siljitish kerakligini ko\'rsatadi.',
+    step3_title:'Belgilanganini tuzating',
+    strengths_title:'Nima allaqachon ishlaydi',
+    style_preview_title:'Ushbu klip uchun subtitr uslublari',
+    swap_btn:'Boshqasini tanlash',
+    three_sec_label:'tomoshabin sveyp qilish yoki qolishni hal qiladigan soniyalar'
+}
   };
 
   /* Dynamic recommendation pools (EN + RU) — chosen by seed */
@@ -3261,7 +3315,7 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
 
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(45, Math.max(wrapEl.clientWidth,1)/Math.max(wrapEl.clientHeight,1), 0.1, 100);
-    camera.position.set(0, 0, isMobile ? 6.2 : 7);
+    camera.position.set(0, 0, isMobile ? 5.4 : 5.8);
 
     var renderer = new THREE.WebGLRenderer({
       canvas: canvas,
@@ -3278,15 +3332,22 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
     scene.add(group);
 
     // Same geometric wireframe on mobile as desktop
+    // Outer shell + inner core — denser so it doesn't look "thin"
     var mesh1 = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(2.05, 1),
-      new THREE.MeshBasicMaterial({color:0xff3b5c, wireframe:true, transparent:true, opacity:0.9})
+      new THREE.IcosahedronGeometry(2.15, 1),
+      new THREE.MeshBasicMaterial({color:0xff3b5c, wireframe:true, transparent:true, opacity:0.95})
     );
     group.add(mesh1);
 
+    var mesh1b = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(2.15, 0),
+      new THREE.MeshBasicMaterial({color:0xff3b5c, wireframe:true, transparent:true, opacity:0.35})
+    );
+    group.add(mesh1b);
+
     var mesh2 = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.05, 0),
-      new THREE.MeshBasicMaterial({color:0x0d9488, wireframe:true, transparent:true, opacity:0.65})
+      new THREE.IcosahedronGeometry(1.25, 1),
+      new THREE.MeshBasicMaterial({color:0x0d9488, wireframe:true, transparent:true, opacity:0.75})
     );
     group.add(mesh2);
 
