@@ -136,12 +136,108 @@
   .hero{
     min-height:auto;display:flex;align-items:center;position:relative;
     padding:calc(110px + var(--safe-top)) 40px 80px;
+    overflow:hidden;
   }
   @media (min-width:901px){ .hero{min-height:100svh;} }
   .hero-grid{
     max-width:1240px;margin:0 auto;width:100%;
     display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:center;
   }
+
+  /* Side phone mockups with scrolling reels */
+  .hero-phone{
+    display:none;
+    position:absolute;
+    top:50%;
+    transform:translateY(-46%);
+    z-index:2;
+    pointer-events:none;
+    opacity:0.95;
+  }
+  .hero-phone-left{ left: max(12px, calc(50% - 620px)); }
+  .hero-phone-right{ right: max(12px, calc(50% - 620px)); }
+  @media (min-width: 1100px){
+    .hero-phone{ display:block; }
+  }
+  @media (min-width: 1400px){
+    .hero-phone-left{ left: max(24px, calc(50% - 700px)); }
+    .hero-phone-right{ right: max(24px, calc(50% - 700px)); }
+  }
+  .phone-bezel{
+    width: 168px;
+    height: 340px;
+    border-radius: 28px;
+    background: linear-gradient(160deg, #2a2a32 0%, #121218 40%, #0a0a0e 100%);
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.5),
+      0 24px 60px rgba(0,0,0,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    padding: 10px 8px 14px;
+    position: relative;
+  }
+  .hero-phone-right .phone-bezel{
+    width: 156px;
+    height: 318px;
+    transform: rotate(3deg);
+  }
+  .hero-phone-left .phone-bezel{
+    transform: rotate(-3deg);
+  }
+  .phone-notch{
+    position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    width:54px; height:8px; border-radius:20px;
+    background:#0a0a0e; z-index:3;
+  }
+  .phone-home{
+    position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+    width:40px; height:3px; border-radius:3px; background:rgba(255,255,255,0.2);
+  }
+  .phone-screen{
+    width:100%; height:100%;
+    border-radius: 20px;
+    overflow:hidden;
+    background:#0b0b10;
+    position:relative;
+  }
+  .reel-scroll{
+    display:flex; flex-direction:column; gap:8px;
+    padding: 6px 0;
+    will-change: transform;
+  }
+  .reel-scroll-a{ animation: reelUp 18s linear infinite; }
+  .reel-scroll-b{ animation: reelUp 22s linear infinite reverse; }
+  @keyframes reelUp {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+  .reel-card{
+    height: 150px;
+    margin: 0 6px;
+    border-radius: 14px;
+    position:relative;
+    overflow:hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .reel-card.r1{ background: linear-gradient(160deg, #ff3b5c 0%, #1a0a12 55%, #0b0b10 100%); }
+  .reel-card.r2{ background: linear-gradient(160deg, #0d9488 0%, #0a1a18 55%, #0b0b10 100%); }
+  .reel-card.r3{ background: linear-gradient(160deg, #7048e8 0%, #120a1a 55%, #0b0b10 100%); }
+  .reel-card.r4{ background: linear-gradient(160deg, #f59e0b 0%, #1a1208 55%, #0b0b10 100%); }
+  .reel-badge{
+    position:absolute; top:10px; left:10px;
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.06em;
+    color:#fff; background:rgba(0,0,0,0.35);
+    padding:3px 7px; border-radius:999px; border:1px solid rgba(255,255,255,0.12);
+  }
+  .reel-cap{
+    position:absolute; left:10px; right:10px; bottom:12px;
+    color:#fff; font-size:12px; font-weight:600; line-height:1.25;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .reel-scroll-a, .reel-scroll-b{ animation: none; }
+  }
+
   .eyebrow{
     display:inline-flex;align-items:center;gap:8px;
     font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.06em;
@@ -607,6 +703,39 @@
 </nav>
 
 <header class="hero">
+  <!-- Side phones with scrolling reels -->
+  <div class="hero-phone hero-phone-left" aria-hidden="true">
+    <div class="phone-bezel">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="reel-scroll reel-scroll-a">
+          <div class="reel-card r1"><span class="reel-badge">Reels</span><div class="reel-cap">0:00 Hook check</div></div>
+          <div class="reel-card r2"><span class="reel-badge">Reels</span><div class="reel-cap">Cut the dead air</div></div>
+          <div class="reel-card r3"><span class="reel-badge">Reels</span><div class="reel-cap">CTA after payoff</div></div>
+          <div class="reel-card r4"><span class="reel-badge">Reels</span><div class="reel-cap">Text safe-zone</div></div>
+          <div class="reel-card r1"><span class="reel-badge">Reels</span><div class="reel-cap">0:00 Hook check</div></div>
+          <div class="reel-card r2"><span class="reel-badge">Reels</span><div class="reel-cap">Cut the dead air</div></div>
+        </div>
+      </div>
+      <div class="phone-home"></div>
+    </div>
+  </div>
+  <div class="hero-phone hero-phone-right" aria-hidden="true">
+    <div class="phone-bezel">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="reel-scroll reel-scroll-b">
+          <div class="reel-card r3"><span class="reel-badge">Reels</span><div class="reel-cap">Pacing 2–3s</div></div>
+          <div class="reel-card r4"><span class="reel-badge">Reels</span><div class="reel-cap">Audio clarity</div></div>
+          <div class="reel-card r1"><span class="reel-badge">Reels</span><div class="reel-cap">Thumbnail CTR</div></div>
+          <div class="reel-card r2"><span class="reel-badge">Reels</span><div class="reel-cap">Score 86/100</div></div>
+          <div class="reel-card r3"><span class="reel-badge">Reels</span><div class="reel-cap">Pacing 2–3s</div></div>
+          <div class="reel-card r4"><span class="reel-badge">Reels</span><div class="reel-cap">Audio clarity</div></div>
+        </div>
+      </div>
+      <div class="phone-home"></div>
+    </div>
+  </div>
   <div class="hero-grid">
     <div>
       <span class="eyebrow" data-i18n="hero_eyebrow">AI video audit · free</span>
