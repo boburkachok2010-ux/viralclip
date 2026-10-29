@@ -333,8 +333,8 @@
   /* ===== Score cards ===== */
   .score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden;}
   .score-card{background:var(--bg-alt);padding:28px 24px;}
-  .score-card .label{font-size:14.5px;font-weight:500;color:var(--ink);}
-  .score-card .desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;min-height:48px;}
+  .score-card .label{display:block;font-size:14.5px;font-weight:500;color:var(--ink);}
+  .score-card .desc{display:block;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;min-height:48px;}
   .score-bar{height:4px;border-radius:4px;background:rgba(244,243,241,0.08);margin-top:18px;overflow:hidden;}
   .score-bar i{display:block;height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,var(--accent-2),var(--accent));}
   .score-pct{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);margin-top:8px;display:block;}
@@ -1344,7 +1344,7 @@
     nav_pricing:'Narxlar',
     nav_account:'Kirish',
     nav_logout:'Chiqish',
-    nav_try:'Bepul sinab ko\'ring',
+    nav_try:'Sinab ko\'ring',
     hero_eyebrow:'AI video audit · bepul',
     hero_h1_1:'Videongiz',
     hero_h1_2:'ko\'rishlarni yo\'qotmoqda.',
@@ -1353,7 +1353,7 @@
     hero_cta:'Videoni tahlil qilish',
     hero_secondary:'Qanday ishlaydi',
     analyzer_kicker:'Tahlil',
-    analyzer_h2:'Rolikni yuklang. Zaif joylarni oling.',
+    analyzer_h2:'Klipni yuklang. Audit oling.',
     analyzer_p:'Qisqa videolar (Reels / Shorts / TikTok). AI kadrlar, temp va nutqni tekshiradi.',
     analyzer_nofile:'Fayl tanlanmagan',
     analyze_btn:'Videoni tahlil qilish',
@@ -1367,21 +1367,21 @@
     auth_note:'Bepul beta. Hozircha to\'lov yo\'q.',
     scores_kicker:'Nima baholanadi',
     scores_h2:'Olti signal. Bitta haqiqat raqami.',
-    scores_p:'Har bir metrika tahrirda o\'zgartirish mumkin bo\'lgan narsaga bog\'langan.',
+    scores_p:'Har bir metrika montajda o\'zgartirish mumkin bo\'lgan narsaga bog\'langan.',
     sc1_label:'Hook kuchi',
     sc1_desc:'Birinchi soniya ikkinchisini oqlaydimi?',
     sc2_label:'Temp',
-    sc2_desc:'Qayerda cho\'ziladi va qayerda nafas olish kerak.',
+    sc2_desc:'Montaj qayerda cho\'ziladi va qayerda nafas olish kerak.',
     sc3_label:'Subtitr vaqti',
-    sc3_desc:'Matn ekranda aynan gap tushganda.',
-    sc4_label:'Audio aniqlik',
-    sc4_desc:'Ovoz miksda ustun, xira intro yo‘q.',
-    sc5_label:'CTA joylashuvi',
-    sc5_desc:'Obuna, izoh yoki havola — to\'g\'ri paytda.',
+    sc3_desc:'Matn ekranda aynan gap tushganda chiqadi.',
+    sc4_label:'Audio',
+    sc4_desc:'Ovoz miksda ustun, iflos intro yo\'q.',
+    sc5_label:'CTA',
+    sc5_desc:'Obuna, izoh yoki havola — to\'g\'ri paytda so\'raladi.',
     sc6_label:'Thumbnail',
-    sc6_desc:'Stop-kadr lenta ichida to\'xtatadimi?',
-    demo_kicker:'Namuna tahlil',
-    demo_h2:'Kadrma-kadr qanday ko\'rinadi',
+    sc6_desc:'Lentada barmoqni to\'xtatadigan kadr.',
+    demo_kicker:'Namuna audit',
+    demo_h2:'Kadrma-kadr tahlil qanday ko\'rinadi',
     acc_kicker:'Bepul · beta',
     acc_h2:'Instagram akkaunt auditi',
     acc_p:'Bitta video emas — butun profil: bio, ustunlar, hooklar, setka, CTA. Hozircha bepul.',
@@ -1429,7 +1429,7 @@
     demo4_title:'Payoffdan keyin CTA yo\'q',
     demo4_txt:'Rolik oxirgi maslahatda uziladi. Asosiy fikrdan keyin 1–2s: nutq + matn («saqlang» / «2-qism»).',
     demo_cta:'Klipingizni tekshiring →',
-    demo_p:'O\'z klipingizni yuklagandan keyin oladigan maslahatlarning xuddi shu formati — vaqt belgilari bilan.',
+    demo_p:'O‘z klipingizni yuklagandan keyingi maslahatlar formati — taymkod bilan.',
     dz_sub:'yoki bosing — MP4, MOV, 500MB gacha',
     dz_title:'Videoni shu yerga tashlang',
     foot_product:'Mahsulot',
@@ -1451,15 +1451,15 @@
     pricing_p:'To\'lov vaqtinchalik o\'chirilgan.',
     problem_h2:'Soatlab montaj. Uch soniyada hukm.',
     problem_kicker:'Muammo',
-    problem_p1:'Ko\'p ijodkorlar klip muvaffaqiyatsizligini faqat joylagandan keyin bilishadi — tuzatib bo\'lmaydi.',
-    problem_p2:'ViralClip platforma qiladigan tahlilni nashrdan OLDIN qiladi — klipma-klip, soniyama-soniya.',
+    problem_p1:'Ko\'p ijodkorlar muvaffaqiyatsizlikni faqat joylagandan keyin bilishadi.',
+    problem_p2:'ViralClip platforma tahlilini nashrdan OLDIN qiladi.',
     reco_title:'Muhim muammolar va tuzatishlar',
     scroll_cue:'PASTGA',
-    step1_p:'Xom montaj yoki final eksportni yuklang — vertikal, istalgan uzunlik, istalgan platforma.',
+    step1_p:'Xom montaj yoki final eksport — vertikal, istalgan platforma.',
     step1_title:'Klipni yuklang',
-    step2_p:'Model hook, temp, subtitr, ovoz va CTA ni baholaydi — top roliklar bazasi bilan solishtiradi.',
+    step2_p:'Model hook, temp, subtitr, ovoz va CTA ni baholaydi.',
     step2_title:'Audit ketmoqda',
-    step3_p:'Qadam-baqadam tahlil e\'tibor qayerda tushishini va nima kesish/siljitish kerakligini ko\'rsatadi.',
+    step3_p:'Qayerda e\'tibor tushishini va nima kesish/siljitish kerakligini ko\'rsatadi.',
     step3_title:'Belgilanganini tuzating',
     strengths_title:'Nima allaqachon ishlaydi',
     style_preview_title:'Ushbu klip uchun subtitr uslublari',
@@ -1559,30 +1559,39 @@
   ];
 
   function applyLanguage(lang){
+    if(lang !== 'en' && lang !== 'ru' && lang !== 'uz') lang = 'en';
     LANG = lang;
     try { localStorage.setItem('viralclip_lang', lang); } catch(e){}
     document.documentElement.lang = lang;
-    var dict = I18N[lang] || I18N.en || I18N.ru || {};
+    var dict = I18N[lang] || {};
+    var fallback = I18N.en || {};
     document.querySelectorAll('[data-i18n]').forEach(function(el){
       var key = el.getAttribute('data-i18n');
-      if(dict[key] !== undefined) el.textContent = dict[key];
+      var val = dict[key];
+      if(val === undefined || val === null || val === '') val = fallback[key];
+      if(val !== undefined && val !== null) el.textContent = val;
     });
     document.querySelectorAll('[data-i18n-html]').forEach(function(el){
       var key = el.getAttribute('data-i18n-html');
-      if(dict[key] !== undefined) el.innerHTML = dict[key];
+      var val = dict[key];
+      if(val === undefined || val === null || val === '') val = fallback[key];
+      if(val !== undefined && val !== null) el.innerHTML = val;
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){
       var key = el.getAttribute('data-i18n-placeholder');
-      if(dict[key] !== undefined) el.placeholder = dict[key];
+      var val = dict[key] || fallback[key];
+      if(val !== undefined && val !== null) el.setAttribute('placeholder', val);
     });
     var toggleBtn = document.getElementById('langToggle');
     if(toggleBtn){ toggleBtn.textContent = (lang || 'en').toUpperCase(); }
     if(typeof updateAnalyzeBtn === 'function') updateAnalyzeBtn();
     if(typeof appState !== 'undefined' && appState && !appState.currentFile){
-      if(fileMeta) fileMeta.textContent = dict.file_meta_default;
-      if(analyzerFileLabel) analyzerFileLabel.textContent = dict.analyzer_nofile;
+      var fileMeta = document.getElementById('fileMeta');
+      var analyzerFileLabel = document.getElementById('analyzerFileLabel');
+      if(fileMeta && (dict.file_meta_default || fallback.file_meta_default)) fileMeta.textContent = dict.file_meta_default || fallback.file_meta_default;
+      if(analyzerFileLabel && (dict.analyzer_nofile || fallback.analyzer_nofile)) analyzerFileLabel.textContent = dict.analyzer_nofile || fallback.analyzer_nofile;
     }
-    if(window.ScrollTrigger) setTimeout(function(){ ScrollTrigger.refresh(); }, 60);
+    if(window.ScrollTrigger) setTimeout(function(){ try{ ScrollTrigger.refresh(); }catch(e){} }, 60);
   }
 
   /* ============ Nav ============ */
