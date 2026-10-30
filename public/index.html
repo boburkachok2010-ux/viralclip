@@ -703,7 +703,11 @@
 </div>
   <div class="nav-right">
     <span class="coin-badge" id="coinBadge" style="display:none">0 🪙</span>
-    <button class="lang-toggle magnetic" id="langToggle" type="button">RU</button>
+    <div class="lang-switch" id="langSwitch" style="display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px;">
+      <button type="button" class="lang-btn" data-lang="en" style="border:none;background:transparent;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px;cursor:pointer;">EN</button>
+      <button type="button" class="lang-btn" data-lang="ru" style="border:none;background:transparent;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px;cursor:pointer;">RU</button>
+      <button type="button" class="lang-btn" data-lang="uz" style="border:none;background:transparent;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px;cursor:pointer;">UZ</button>
+    </div>
     <a href="#admin-panel" id="adminNavLink" class="btn-ghost magnetic" style="display:none;padding:8px 14px;font-size:13px;border:1px solid rgba(255,59,92,0.5);border-radius:999px;color:var(--accent);text-decoration:none;">Admin</a>
     <button type="button" class="btn-ghost magnetic" id="authBtn" style="padding:8px 14px;font-size:13px;border:1px solid var(--line);border-radius:999px;" data-i18n="nav_account">Log in</button>
     <a href="#analyzer" class="nav-cta magnetic" data-i18n="nav_try">Try it free</a>
@@ -1362,7 +1366,7 @@
     auth_email:'Email',
     auth_pass:'Parol',
     auth_name:'Ism',
-    auth_or:'yoki', auth_login_btn:'Kirish',
+    auth_or:'yoki', marquee_text:'Hook · Temp · Subtitr · Audio · CTA · Thumbnail · Hook · Temp · ', auth_login_btn:'Kirish',
     auth_reg_btn:'Akkount yaratish',
     auth_note:'Bepul beta. Hozircha to\'lov yo\'q.',
     scores_kicker:'Nima baholanadi',
@@ -1582,8 +1586,8 @@
       var val = dict[key] || fallback[key];
       if(val !== undefined && val !== null) el.setAttribute('placeholder', val);
     });
-    var toggleBtn = document.getElementById('langToggle');
-    if(toggleBtn){ toggleBtn.textContent = (lang || 'en').toUpperCase(); }
+    if(typeof syncLangButtons === 'function') syncLangButtons();
+    document.documentElement.setAttribute('data-lang', lang);
     if(typeof updateAnalyzeBtn === 'function') updateAnalyzeBtn();
     if(typeof appState !== 'undefined' && appState && !appState.currentFile){
       var fileMeta = document.getElementById('fileMeta');
@@ -1815,7 +1819,7 @@
     authBtn.addEventListener('click', function(){
       if(authBtn.getAttribute('data-logged') === '1'){
         setAuth('', null);
-        showToast(LANG==='ru' ? 'Вы вышли' : 'Logged out');
+        showToast(t3('Logged out','Вы вышли','Chiqdingiz'));
         return;
       }
       var m = getAuthModal();
@@ -1875,7 +1879,7 @@
         if(!res.ok) throw new Error(js.error_ru || js.error || 'Login failed');
         setAuth(js.token, js.user);
         closeModal(getAuthModal());
-        showToast(LANG==='ru' ? 'Вход выполнен' : 'Logged in');
+        showToast(t3('Logged in','Вход выполнен','Kirish bajarildi'));
       } catch(err){
         showAuthErr(err.message || 'Error');
       }
@@ -1899,7 +1903,7 @@
         if(!res.ok) throw new Error(js.error_ru || js.error || 'Register failed');
         setAuth(js.token, js.user);
         closeModal(getAuthModal());
-        showToast(LANG==='ru' ? 'Аккаунт создан' : 'Account created');
+        showToast(t3('Account created','Аккаунт создан','Akkount yaratildi'));
       } catch(err){
         showAuthErr(err.message || 'Error');
       }
@@ -1953,7 +1957,7 @@
       if(!res.ok) throw new Error(js.error_ru || js.error || 'Google login failed');
       setAuth(js.token, js.user);
       closeModal(getAuthModal());
-      showToast(LANG==='ru' ? 'Вход через Google' : (LANG==='uz' ? 'Google orqali kirdingiz' : 'Signed in with Google'));
+      showToast(t3('Signed in with Google','Вход через Google','Google orqali kirdingiz'));
     } catch(err){
       showAuthErr(err.message || 'Google error');
     }
@@ -3924,11 +3928,29 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
   })();
 
   /* ============ Language toggle ============ */
-  document.getElementById('langToggle').addEventListener('click', function(){
-    var next = LANG === 'en' ? 'ru' : (LANG === 'ru' ? 'uz' : 'en');
-    applyLanguage(next);
+  function t3(en, ru, uz){
+    if(LANG==='ru') return ru;
+    if(LANG==='uz') return uz;
+    return en;
+  }
+  function syncLangButtons(){
+    document.querySelectorAll('.lang-btn').forEach(function(btn){
+      var on = btn.getAttribute('data-lang') === LANG;
+      btn.style.background = on ? 'var(--accent)' : 'transparent';
+      btn.style.color = on ? '#fff' : 'var(--muted)';
+      btn.style.fontWeight = on ? '600' : '400';
+    });
+  }
+  document.querySelectorAll('.lang-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      applyLanguage(btn.getAttribute('data-lang') || 'en');
+      syncLangButtons();
+    });
   });
   try { applyLanguage(LANG || 'en'); } catch(e){ try{ applyLanguage('en'); }catch(e2){} }
+  syncLangButtons();
+  // Second pass after layout (fixes late nodes)
+  setTimeout(function(){ try{ applyLanguage(LANG); syncLangButtons(); }catch(e){} }, 100);
 
 })();
 </script>
