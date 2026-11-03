@@ -2640,70 +2640,119 @@
     var dur = appState.duration || 1;
     var spStart = speechStart(transcript, audio);
     var cta = detectCTA(transcript);
-
-    // HOOK: speech early + motion + audio energy in first 3s
-    var hook = 100;
-    if(spStart > BENCHMARKS.hookSpeechBy) hook -= Math.min(40, (spStart - BENCHMARKS.hookSpeechBy) * 12);
-    if(motion.hookMotion < BENCHMARKS.hookMotionMin) hook -= 18;
-    if(audio.hookRms < BENCHMARKS.hookAudioMin) hook -= 16;
-    if(spStart < 0.8 && motion.hookMotion > 0.06) hook += 6;
-    hook = clamp(Math.round(hook), 28, 98);
-
-    // PACING: cut rate vs ideal
-    var pacing = scoreFromRatio(motion.cutsPerSec, BENCHMARKS.cutsPerSecIdeal, 0.05, BENCHMARKS.cutsPerSecMax);
-    if(motion.meanMotion < 0.02) pacing = Math.min(pacing, 48);
-    if(motion.meanMotion > 0.12 && motion.cutsPerSec < 0.15) pacing = Math.min(pacing, 55); // static long takes
-    pacing = clamp(pacing, 28, 98);
-
-    // CAPTIONS: timed speech coverage (proxy). Burned-in subtitle style is judged by GPT on frames.
-    // Do NOT punish good on-screen captions just because WPS is low/high.
-    var words = (transcript.text || '').trim().split(/\s+/).filter(Boolean);
-    var wps = words.length / Math.max(dur, 0.1);
+    var cuts = (motion && motion.cuts) ? motion.cuts.length : 0;
+    var cps = Number(motion.cutsPerSec || 0);
+    var meanMot = Number(motion.meanMotion || 0);
+    var hookMot = Number(motion.hookMotion || 0);
+    var words = ((transcript && transcript.text) || '').trim().split(/\s+/).filter(Boolean);
     var segs = (transcript && transcript.segments) || [];
+
+    // How "edited" the clip looks (0 = raw phone dump, 1 = clearly cut/dynamic)
+    var editIntensity = 0;
+    if(cps >= 0.25) editIntensity += 0.35;
+    else if(cps >= 0.12) editIntensity += 0.2;
+    else if(cps >= 0.05) editIntensity += 0.08;
+    if(meanMot >= 0.06) editIntensity += 0.25;
+    else if(meanMot >= 0.03) editIntensity += 0.12;
+    else if(meanMot >= 0.015) editIntensity += 0.05;
+    if(cuts >= 6) editIntensity += 0.2;
+    else if(cuts >= 3) editIntensity += 0.1;
+    if(words.length > 8 && segs.length >= 3) editIntensity += 0.1;
+    editIntensity = clamp(editIntensity, 0, 1);
+    var isRaw = editIntensity < 0.28 && dur >= 5;
+
+    // HOOK — start mid, punish late speech / dead first seconds / no energy
+    var hook = 62;
+    if(spStart < 0) hook -= 18;
+    else if(spStart > 2.5) hook -= Math.min(28, (spStart - 2.5) * 10);
+    else if(spStart > 1.2) hook -= 12;
+    else if(spStart < 0.6) hook += 8;
+    if(hookMot < 0.02) hook -= 16;
+    else if(hookMot < 0.04) hook -= 8;
+    else if(hookMot > 0.08) hook += 6;
+    if(Number(audio.hookRms || 0) < 0.025) hook -= 12;
+    if(isRaw) hook -= 14; // raw selfie / static open
+    if(dur >= 8 && cps < 0.08 && meanMot < 0.03) hook -= 8;
+    hook = clamp(Math.round(hook), 18, 92);
+
+    // PACING — few cuts + low motion = weak short-form edit
+    var pacing = 58;
+    if(cps < 0.04) pacing = 32;
+    else if(cps < 0.08) pacing = 40;
+    else if(cps < 0.15) pacing = 52;
+    else if(cps < 0.28) pacing = 68;
+    else if(cps < 0.55) pacing = 78;
+    else pacing = 70; // possible overcut
+    if(meanMot < 0.015) pacing = Math.min(pacing, 34);
+    else if(meanMot < 0.025) pacing = Math.min(pacing, 44);
+    else if(meanMot < 0.04) pacing = Math.min(pacing, 55);
+    // long static takes
+    if(dur > 10 && cuts <= 1) pacing = Math.min(pacing, 30);
+    else if(dur > 8 && cuts <= 2) pacing = Math.min(pacing, 38);
+    if(isRaw) pacing = Math.min(pacing, 36);
+    pacing = clamp(Math.round(pacing), 18, 90);
+
+    // CAPTIONS — no evidence of timed captions = low, not "neutral 78"
+    var captions = 42;
     var covered = 0;
     segs.forEach(function(s){
       var a = Math.max(0, s.start||0), b = Math.min(dur, s.end||a);
       if(b > a) covered += (b - a);
     });
     var coverage = clamp(covered / Math.max(dur, 0.1), 0, 1);
-    var captions = 70; // neutral default when we cannot OCR burned-in text
-    if(segs.length >= 2 && coverage > 0.35) captions = 82;
-    if(segs.length >= 4 && coverage > 0.55) captions = 90;
-    if(segs.length >= 1 && coverage > 0.2) captions = Math.max(captions, 78);
-    if(!transcript.text || transcript.engine === 'none') {
-      // No reliable speech STT — cannot claim bad caption timing; keep mid-high neutral
-      captions = 78; // neutral-high: cannot OCR burned-in timing precisely
+    if(segs.length >= 2 && coverage > 0.35) captions = 70;
+    if(segs.length >= 4 && coverage > 0.5) captions = 82;
+    if(words.length > 15 && segs.length === 0) captions = 35;
+    if(!transcript || !transcript.text || transcript.engine === 'none') {
+      // cannot prove burned-in captions from STT — assume weak unless AI later boosts
+      captions = isRaw ? 32 : 48;
     }
-    // Only soft penalty if speech is dense but zero segments (broken STT structure)
-    if(words.length > 12 && segs.length === 0) captions = 60;
-    captions = clamp(Math.round(captions), 40, 96);
+    if(isRaw) captions = Math.min(captions, 40);
+    captions = clamp(Math.round(captions), 18, 90);
 
-    // AUDIO: silence ratio + dynamic peaks
-    var audioScore = 100;
-    if(audio.silenceRatio > BENCHMARKS.silenceRatioMax) audioScore -= Math.min(40, (audio.silenceRatio - BENCHMARKS.silenceRatioMax) * 120);
-    if(audio.meanRms < 0.03) audioScore -= 20;
-    if(audio.peakCount < 2 && dur > 8) audioScore -= 10;
-    if(audio.hookRms > 0.08) audioScore += 5;
-    audioScore = clamp(Math.round(audioScore), 28, 98);
+    // AUDIO
+    var audioScore = 70;
+    if(Number(audio.silenceRatio || 0) > 0.35) audioScore -= 22;
+    if(Number(audio.meanRms || 0) < 0.03) audioScore -= 18;
+    if(Number(audio.meanRms || 0) > 0.06 && Number(audio.silenceRatio || 0) < 0.2) audioScore += 8;
+    if(Number(audio.peakCount || 0) < 2 && dur > 8) audioScore -= 10;
+    if(isRaw) audioScore -= 6; // usually room noise / no design
+    audioScore = clamp(Math.round(audioScore), 18, 92);
 
     // CTA
-    var ctaScore = cta.inWindow ? 86 : (cta.has ? 62 : 40);
-    if(dur < 8) ctaScore = Math.max(ctaScore, 55); // short clips less penalty
-    ctaScore = clamp(ctaScore, 28, 96);
+    var ctaScore = cta.inWindow ? 82 : (cta.has ? 58 : 34);
+    if(dur < 7) ctaScore = Math.max(ctaScore, 48);
+    if(isRaw && !cta.has) ctaScore = Math.min(ctaScore, 32);
+    ctaScore = clamp(Math.round(ctaScore), 18, 90);
 
-    // THUMB: contrast of first frame
-    var thumb = 70;
-    var f0 = (appState.frames && appState.frames[0]) || null;
-    // use first captured frame brightness variance from motion proxy
-    if(motion.diffs.length){
-      thumb = clamp(Math.round(55 + motion.hookMotion * 400), 35, 92);
-    }
-    // vertical video often better for shorts — we don't have aspect easily; skip
+    // THUMB / first frame interest
+    var thumb = 48;
+    if(hookMot > 0.05) thumb = 62;
+    if(hookMot > 0.09) thumb = 72;
+    if(meanMot < 0.02) thumb = Math.min(thumb, 42);
+    if(isRaw) thumb = Math.min(thumb, 45);
+    thumb = clamp(Math.round(thumb), 18, 88);
+
+    // Hard ceiling for unedited dumps so overall cannot look "good"
+    var ceiling = 96;
+    if(isRaw) ceiling = 52;
+    else if(editIntensity < 0.4) ceiling = 68;
+    else if(editIntensity < 0.55) ceiling = 78;
+
+    hook = Math.min(hook, ceiling + 8);
+    pacing = Math.min(pacing, ceiling);
+    captions = Math.min(captions, ceiling);
+    audioScore = Math.min(audioScore, ceiling + 10);
+    ctaScore = Math.min(ctaScore, ceiling + 5);
+    thumb = Math.min(thumb, ceiling);
 
     return {
       hook: hook, pacing: pacing, captions: captions,
       audio: audioScore, cta: ctaScore, thumb: thumb,
-      meta: { spStart: spStart, wps: wps, cta: cta, cuts: motion.cuts.length, cps: motion.cutsPerSec }
+      meta: {
+        spStart: spStart, cta: cta, cuts: cuts, cps: cps,
+        meanMotion: meanMot, editIntensity: editIntensity, isRaw: isRaw, ceiling: ceiling
+      }
     };
   }
 
@@ -2876,12 +2925,11 @@
           ? ('AI не ответил: ' + (aiErr.message || aiErr) + ' — ниже разбор по скриншотам')
           : ('AI failed: ' + (aiErr.message || aiErr) + ' — screenshot tips below'));
       }
-      // If AI did not flag captions, don't show a harsh captions score from weak STT proxy
-      if(aiPack && aiPack.tips && aiPack.tips.length){
-        var capHit = aiPack.tips.some(function(t){
-          return (t.key === 'captions' || /subtitle|caption|субтитр/i.test(t.text||''));
-        });
-        if(!capHit && scores.captions < 75) scores.captions = 80;
+      // Do NOT inflate captions score when AI is silent — raw clips must stay honest
+      if(scores && scores.meta && scores.meta.isRaw){
+        scores.captions = Math.min(scores.captions, 40);
+        scores.pacing = Math.min(scores.pacing, 38);
+        scores.hook = Math.min(scores.hook, 55);
       }
       analysisCache.aiPack = aiPack;
       analysisCache.scores = scores;
@@ -2919,6 +2967,12 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
       return { key:k, label:labels[idx], score: scores[k], strengthKey: strengthKeys[idx] };
     });
     var overall = Math.round(metrics.reduce(function(a,m){ return a+m.score; },0) / metrics.length);
+    if(scores && scores.meta){
+      if(scores.meta.isRaw) overall = Math.min(overall, 48);
+      else if(scores.meta.editIntensity < 0.4) overall = Math.min(overall, 62);
+      else if(scores.meta.editIntensity < 0.55) overall = Math.min(overall, 74);
+      if(scores.meta.ceiling) overall = Math.min(overall, scores.meta.ceiling);
+    }
 
     var barsHtml = '';
     metrics.forEach(function(m){
