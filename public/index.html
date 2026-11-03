@@ -2659,7 +2659,8 @@
     else if(cuts >= 3) editIntensity += 0.1;
     if(words.length > 8 && segs.length >= 3) editIntensity += 0.1;
     editIntensity = clamp(editIntensity, 0, 1);
-    var isRaw = editIntensity < 0.28 && dur >= 5;
+    // Treat weak edits as raw more aggressively
+    var isRaw = (editIntensity < 0.35 && dur >= 4) || (cuts <= 2 && meanMot < 0.035 && dur >= 6);
 
     // HOOK — start mid, punish late speech / dead first seconds / no energy
     var hook = 62;
@@ -2677,9 +2678,9 @@
 
     // PACING — few cuts + low motion = weak short-form edit
     var pacing = 58;
-    if(cps < 0.04) pacing = 32;
-    else if(cps < 0.08) pacing = 40;
-    else if(cps < 0.15) pacing = 52;
+    if(cps < 0.04) pacing = 26;
+    else if(cps < 0.08) pacing = 34;
+    else if(cps < 0.15) pacing = 46;
     else if(cps < 0.28) pacing = 68;
     else if(cps < 0.55) pacing = 78;
     else pacing = 70; // possible overcut
@@ -2734,10 +2735,11 @@
     thumb = clamp(Math.round(thumb), 18, 88);
 
     // Hard ceiling for unedited dumps so overall cannot look "good"
-    var ceiling = 96;
-    if(isRaw) ceiling = 52;
-    else if(editIntensity < 0.4) ceiling = 68;
-    else if(editIntensity < 0.55) ceiling = 78;
+    var ceiling = 94;
+    if(isRaw) ceiling = 42;
+    else if(editIntensity < 0.4) ceiling = 55;
+    else if(editIntensity < 0.55) ceiling = 68;
+    else if(editIntensity < 0.7) ceiling = 80;
 
     hook = Math.min(hook, ceiling + 8);
     pacing = Math.min(pacing, ceiling);
@@ -2968,9 +2970,10 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
     });
     var overall = Math.round(metrics.reduce(function(a,m){ return a+m.score; },0) / metrics.length);
     if(scores && scores.meta){
-      if(scores.meta.isRaw) overall = Math.min(overall, 48);
-      else if(scores.meta.editIntensity < 0.4) overall = Math.min(overall, 62);
-      else if(scores.meta.editIntensity < 0.55) overall = Math.min(overall, 74);
+      if(scores.meta.isRaw) overall = Math.min(overall, 40);
+      else if(scores.meta.editIntensity < 0.4) overall = Math.min(overall, 52);
+      else if(scores.meta.editIntensity < 0.55) overall = Math.min(overall, 65);
+      else if(scores.meta.editIntensity < 0.7) overall = Math.min(overall, 78);
       if(scores.meta.ceiling) overall = Math.min(overall, scores.meta.ceiling);
     }
 
