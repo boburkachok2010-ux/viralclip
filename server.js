@@ -48,13 +48,13 @@ app.use((req, res, next) => {
   // CSP: tight enough for grade boost; allows current inline UI + Google sign-in
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com https://cdnjs.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: data:",
-    "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+    "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://cdnjs.cloudflare.com",
     "frame-src 'self' https://accounts.google.com",
-    "font-src 'self' data:",
+    "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

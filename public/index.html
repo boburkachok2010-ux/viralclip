@@ -580,7 +580,7 @@
   }
   #toast.show{transform:translate(-50%,0);}
 
-  .reveal{opacity:0;transform:translateY(20px);}
+  .reveal{opacity:1;transform:translateY(0);}
   /* Mobile: never leave content invisible if ScrollTrigger fails */
   @media (max-width:900px),(hover:none),(pointer:coarse){
     .reveal{opacity:1!important;transform:none!important;}
@@ -3132,13 +3132,29 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         if(tip.key === 'cta' || k === 'cta') hit.cta = Math.max(hit.cta, pen);
       });
       ['hook','pacing','captions','audio','cta','thumb'].forEach(function(k){
-        if(hit[k] > 0) scores[k] = clamp(Math.round(scores[k] - hit[k]), 28, 96);
+        if(hit[k] > 0) scores[k] = clamp(Math.round(scores[k] - hit[k]), 18, 96);
       });
+      // Raw / weak-edit ceiling must survive AI reconcile
+      if(scores.meta && scores.meta.isRaw){
+        ['hook','pacing','captions','audio','cta','thumb'].forEach(function(k){
+          if(scores[k] != null) scores[k] = Math.min(scores[k], k==='audio' ? 50 : 42);
+        });
+        scores.captions = Math.min(scores.captions, 32);
+        scores.pacing = Math.min(scores.pacing, 34);
+        scores.cta = Math.min(scores.cta, 32);
+      } else if(scores.meta && scores.meta.editIntensity < 0.45){
+        ['hook','pacing','captions','cta','thumb'].forEach(function(k){
+          if(scores[k] != null) scores[k] = Math.min(scores[k], 58);
+        });
+      }
       // refresh metrics array scores
       metrics.forEach(function(m){
         if(m.key && scores[m.key] != null) m.score = scores[m.key];
       });
       overall = Math.round(metrics.reduce(function(a,m){ return a+m.score; },0) / metrics.length);
+      if(scores.meta && scores.meta.isRaw) overall = Math.min(overall, 38);
+      else if(scores.meta && scores.meta.editIntensity < 0.45) overall = Math.min(overall, 52);
+      else if(scores.meta && scores.meta.ceiling) overall = Math.min(overall, scores.meta.ceiling);
       try {
         document.getElementById('resultScore').textContent = overall;
         // update bars if present
@@ -4015,7 +4031,12 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+    }).catch(function(){});
+    if (window.caches && caches.keys) {
+      caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+    }
   });
 }
 </script>
