@@ -767,16 +767,6 @@ app.post('/api/auth/register', rateLimit('auth', 20, 15 * 60 * 1000), (req, res)
     });
   }
 
-  if (isAdminEmail(email)) {
-    const boot = String(process.env.ADMIN_BOOTSTRAP_SECRET || '').trim();
-    const provided = String((req.body && req.body.bootstrapSecret) || '').trim();
-    if (!boot || provided !== boot) {
-      return res.status(403).json({
-        error: 'This email cannot be registered without bootstrap secret',
-        error_ru: 'Этот email нельзя зарегистрировать без секретного кода администратора'
-      });
-    }
-  }
 
   const users = readJson('users.json', []);
   if (users.find((u) => u.email === email)) {
