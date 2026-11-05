@@ -31,16 +31,54 @@ const SIGNUP_BONUS_COINS = 10;
 
 const app = express();
 
+// Behind Render/Cloudflare proxy — correct client IPs for rate limits
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  // HSTS: only HTTPS for 2 years (browsers ignore on plain http localhost)
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  // CSP: tight enough for grade boost; allows current inline UI + Google sign-in
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: data:",
+    "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+    "frame-src 'self' https://accounts.google.com",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+    "upgrade-insecure-requests"
+  ].join('; ');
+  res.setHeader('Content-Security-Policy', csp);
   next();
 });
 
-app.use(cors({ origin: CORS_ORIGIN }));
-app.use(express.json({ limit: '30mb' }));
+// CORS: if CORS_ORIGIN is set to a URL, lock to it; true = reflect request origin in dev
+const corsOrigin = CORS_ORIGIN === true || CORS_ORIGIN === 'true'
+  ? true
+  : String(CORS_ORIGIN || '').split(',').map((x) => x.trim()).filter(Boolean);
+app.use(cors({
+  origin: corsOrigin.length ? corsOrigin : true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token'],
+  maxAge: 86400
+}));
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/billing/webhook' || req.path === '/api/billing/webhook') return next();
+  return express.json({ limit: '30mb' })(req, res, next);
+});
 
 const buckets = new Map();
 
@@ -101,9 +139,24 @@ app.use(
   })
 );
 
+function looksLikeMedia(buf, originalname) {
+  if (!buf || buf.length < 12) return false;
+  const hex = buf.slice(0, 12).toString('hex');
+  // mp4/mov: ....ftyp ; webm: 1a45dfa3 ; ogg: OggS ; mp3: ID3 or fffb ; wav: RIFF
+  if (buf.slice(4, 8).toString('ascii') === 'ftyp') return true;
+  if (hex.startsWith('1a45dfa3')) return true;
+  if (buf.slice(0, 4).toString('ascii') === 'OggS') return true;
+  if (buf.slice(0, 3).toString('ascii') === 'ID3') return true;
+  if (hex.startsWith('fff') || hex.startsWith('ffe')) return true;
+  if (buf.slice(0, 4).toString('ascii') === 'RIFF') return true;
+  const ext = String(originalname || '').toLowerCase();
+  if (/\.(mp4|mov|webm|mp3|wav|m4a|aac)$/.test(ext) && buf.length > 1024) return true;
+  return false;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const ok =
       /audio\//.test(file.mimetype) ||
@@ -112,6 +165,18 @@ const upload = multer({
     cb(ok ? null : new Error('Only audio/video uploads allowed'), ok);
   }
 });
+
+function requireMediaBuffer(req, res) {
+  if (!req.file || !req.file.buffer) {
+    res.status(400).json({ error: 'file required' });
+    return false;
+  }
+  if (!looksLikeMedia(req.file.buffer, req.file.originalname)) {
+    res.status(400).json({ error: 'File content is not a recognized audio/video format', error_ru: 'Файл не похож на аудио/видео' });
+    return false;
+  }
+  return true;
+}
 
 function hasKey() {
   return OPENAI_API_KEY.startsWith('sk-') && OPENAI_API_KEY.length > 20;
@@ -581,7 +646,13 @@ function verifyToken(token) {
   if (!token || typeof token !== 'string' || !token.includes('.')) return null;
   const [body, sig] = token.split('.');
   const expect = crypto.createHmac('sha256', TOKEN_SECRET).update(body).digest('base64url');
-  if (sig !== expect) return null;
+  try {
+    const a = Buffer.from(String(sig));
+    const b = Buffer.from(String(expect));
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  } catch {
+    return null;
+  }
   try {
     const data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (!data.exp || data.exp < Date.now()) return null;
@@ -680,7 +751,7 @@ app.post('/api/waitlist', (req, res) => {
 });
 
 // Register
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', rateLimit('auth', 20, 15 * 60 * 1000), (req, res) => {
   const email = String((req.body && req.body.email) || '')
     .trim()
     .toLowerCase();
@@ -689,12 +760,24 @@ app.post('/api/auth/register', (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Invalid email', error_ru: 'Некорректный email' });
   }
-  if (password.length < 6) {
+  if (password.length < 8) {
     return res.status(400).json({
-      error: 'Password min 6 characters',
-      error_ru: 'Пароль минимум 6 символов'
+      error: 'Password min 8 characters',
+      error_ru: 'Пароль минимум 8 символов'
     });
   }
+
+  if (isAdminEmail(email)) {
+    const boot = String(process.env.ADMIN_BOOTSTRAP_SECRET || '').trim();
+    const provided = String((req.body && req.body.bootstrapSecret) || '').trim();
+    if (!boot || provided !== boot) {
+      return res.status(403).json({
+        error: 'This email cannot be registered without bootstrap secret',
+        error_ru: 'Этот email нельзя зарегистрировать без секретного кода администратора'
+      });
+    }
+  }
+
   const users = readJson('users.json', []);
   if (users.find((u) => u.email === email)) {
     return res.status(409).json({
@@ -714,7 +797,7 @@ app.post('/api/auth/register', (req, res) => {
     lastLoginAt: new Date().toISOString(),
     analysesUsed: 0,
     coins: SIGNUP_BONUS_COINS,
-    plan: isAdminEmail(email) ? 'studio' : 'free',
+    plan: 'free',
     planExpires: null
   };
   users.push(user);
@@ -734,7 +817,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', rateLimit('auth', 20, 15 * 60 * 1000), (req, res) => {
   const email = String((req.body && req.body.email) || '')
     .trim()
     .toLowerCase();
@@ -778,7 +861,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Google Sign-In (ID token from GIS)
-app.post('/api/auth/google', async (req, res) => {
+app.post('/api/auth/google', rateLimit('auth', 30, 15 * 60 * 1000), async (req, res) => {
   try {
     const credential = String((req.body && req.body.credential) || '').trim();
     if (!credential) {
@@ -818,7 +901,7 @@ app.post('/api/auth/google', async (req, res) => {
         provider: 'google',
         googleSub: info.sub || '',
         coins: SIGNUP_BONUS_COINS,
-        plan: isAdminEmail(email) ? 'studio' : 'free',
+        plan: 'free',
         analysesUsed: 0,
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString()
@@ -826,12 +909,24 @@ app.post('/api/auth/google', async (req, res) => {
       users.push(user);
       writeJson('users.json', users);
     } else {
+      if (user.googleSub && info.sub && String(user.googleSub) !== String(info.sub)) {
+        return res.status(403).json({
+          error: 'Google account mismatch for this email',
+          error_ru: 'Этот email уже связан с другим Google-аккаунтом'
+        });
+      }
+      if (user.provider === 'password' && user.hash && !user.googleSub) {
+        // Do not silently take over password accounts via Google without prior link
+        return res.status(403).json({
+          error: 'Email already registered with password. Log in with password.',
+          error_ru: 'Email уже зарегистрирован с паролем. Войдите паролем.'
+        });
+      }
       updateUser(email, (u) => {
         u.provider = u.provider || 'google';
-        u.googleSub = info.sub || u.googleSub || '';
+        if (!u.googleSub && info.sub) u.googleSub = info.sub;
         if (!u.name && name) u.name = name;
         u.lastLoginAt = new Date().toISOString();
-        if (isAdminEmail(email) && u.plan === 'free') u.plan = 'studio';
       });
       user = readJson('users.json', []).find((u) => u.email === email) || user;
     }
@@ -949,21 +1044,32 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), (req
   const stripe = getStripe();
   if (!stripe) return res.status(503).send('stripe off');
 
-  let event = req.body;
   const sig = req.headers['stripe-signature'];
-  const whsec = process.env.STRIPE_WEBHOOK_SECRET || '';
+  const whsec = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+  if (!whsec) {
+    console.error('[webhook] STRIPE_WEBHOOK_SECRET missing — refusing event');
+    return res.status(503).send('webhook secret not configured');
+  }
+  if (!sig) {
+    return res.status(400).send('Missing stripe-signature');
+  }
+
+  let event;
   try {
-    if (whsec && sig) {
-      event = stripe.webhooks.constructEvent(req.body, sig, whsec);
-    } else if (Buffer.isBuffer(req.body)) {
-      event = JSON.parse(req.body.toString('utf8'));
-    }
+    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
+    event = stripe.webhooks.constructEvent(raw, sig, whsec);
   } catch (err) {
     console.error('[webhook] signature', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
+    // Idempotency: never credit the same Stripe event twice
+    const seen = readJson('stripe_events.json', []);
+    if (event.id && seen.includes(event.id)) {
+      return res.json({ received: true, duplicate: true });
+    }
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const email = (session.metadata && session.metadata.email) || session.customer_email;
@@ -981,8 +1087,14 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), (req
         console.log('[webhook] credited', email, coins, productId);
       }
     }
+
+    if (event.id) {
+      seen.push(event.id);
+      writeJson('stripe_events.json', seen.slice(-500));
+    }
   } catch (e) {
     console.error('[webhook] handler', e);
+    return res.status(500).json({ error: 'handler failed' });
   }
   res.json({ received: true });
 });
@@ -994,10 +1106,10 @@ async function fetchInstagramProfile(username) {
   const token = String(process.env.APIFY_TOKEN || process.env.APIFY_API_TOKEN || '').trim();
   if (!token) return null;
   const actor = String(process.env.APIFY_IG_ACTOR || 'apify/instagram-profile-scraper').replace('/', '~');
-  const u = String(username || '').replace(/^@/, '').trim();
+  const u = String(username || '').replace(/^@/, '').trim().toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 30);
   if (!u) return null;
 
-  const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}&timeout=120`;
+  const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?timeout=120`;
   const body = {
     usernames: [u],
     username: [u],
@@ -1013,7 +1125,7 @@ async function fetchInstagramProfile(username) {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: ctrl.signal
     });
@@ -1072,7 +1184,7 @@ async function fetchInstagramProfile(username) {
 
 
 // ----- Instagram / account audit (Studio premium) -----
-app.post('/api/account-audit', async (req, res) => {
+app.post('/api/account-audit', rateLimit('acct_audit', 10, 60 * 60 * 1000), async (req, res) => {
   try {
     if (!hasKey()) {
       return res.status(503).json({
@@ -1362,7 +1474,7 @@ app.get('/api/admin/users', (req, res) => {
   res.json({ ok: true, total: list.length, users: list });
 });
 
-app.post('/api/admin/grant-coins', (req, res) => {
+app.post('/api/admin/grant-coins', rateLimit('admin', 30, 60 * 1000), (req, res) => {
   if (!requireAdmin(req, res)) return;
   const email = String((req.body && req.body.email) || '').trim().toLowerCase();
   let coins = Number(req.body && req.body.coins);
@@ -1405,6 +1517,9 @@ app.get('*', (req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ViralClip http://localhost:${PORT} (also LAN via your PC IP)`);
+  if (!process.env.TOKEN_SECRET || process.env.TOKEN_SECRET === 'viralclip-dev-secret') {
+    console.warn('SECURITY: set a strong TOKEN_SECRET in Environment (Render) — do not use default');
+  }
   console.log('Admin emails:', adminEmails().join(', ') || '(none)');
   console.log(
     hasKey()
