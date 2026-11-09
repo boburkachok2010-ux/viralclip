@@ -684,6 +684,13 @@
       <button type="submit" class="btn-primary" style="width:100%;padding:12px;border:none;border-radius:12px;cursor:pointer;" data-i18n="auth_reg_btn">Create account</button>
     </form>
     <p id="authErr" style="color:var(--accent);font-size:13px;margin-top:12px;display:none;"></p>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0 10px;">
+      <div style="flex:1;height:1px;background:var(--line);"></div>
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;" data-i18n="auth_or">or</span>
+      <div style="flex:1;height:1px;background:var(--line);"></div>
+    </div>
+    <div id="googleBtnSlot" style="display:flex;justify-content:center;min-height:44px;"></div>
+    <p id="googleAuthHint" style="color:var(--muted);font-size:11px;margin-top:8px;text-align:center;min-height:16px;"></p>
     <p style="color:var(--muted-2);font-size:11px;margin-top:14px;line-height:1.4;" data-i18n="auth_note">Free beta. No payment yet. Account saves your email for access later.</p>
   </div>
 </div>
@@ -1830,6 +1837,7 @@
       });
       m.onclick = function(e){ if(e.target === m) closeModal(m); };
       openModal(m);
+      try { loadAuthConfig(); renderGoogleButton(); } catch(e){}
     });
   }
   var tabLogin = document.getElementById('tabLogin');
