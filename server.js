@@ -1353,7 +1353,8 @@ JSON keys stay in English; VALUES are in ${langName}.
 LENGTH RULES (critical — no walls of text):
 - summary: max 3 short sentences
 - strengths/weaknesses: max 4 items, each 1 short sentence with a fact from THIS account
-- actions: exactly 4 (2 high, 1 mid, 1 low). Each detail = 2–3 short sentences only: problem + exact fix + one example line. NO OBSERVATION/EVIDENCE/DIAGNOSIS labels. No essays.
+- actions: exactly 8 (3 high, 3 mid, 2 low). Each detail = 2–3 short sentences: problem + exact fix + one example. NO OBSERVATION/EVIDENCE labels. No essays.
+- Each action MUST use a different screenshot_ref when posts exist: post:1, post:2, post:3... then bio/profile. Do NOT attach the same post image to multiple tips.
 - bio_rewrite: short, under ~150 chars style
 - 7_day_plan: 7 lines, each under ~12 words
 - screenshot_ref: bio|profile|grid|post:1|post:2|post:3|null — link tip to a real visual when possible
@@ -1399,10 +1400,11 @@ Return ONLY this JSON shape:
       "priority": "high|mid|low",
       "title": "short title max 8 words",
       "detail": "2-3 short sentences: what is wrong (with fact) + exact fix + one example line. No labels, no essay.",
-      "screenshot_ref": "bio|profile|grid|post:1|post:2|post:3|null",
+      "screenshot_ref": "post:1|post:2|post:3|post:4|post:5|post:6|post:7|post:8|bio|profile",
       "kpi": "one KPI"
     }
   ],
+  // return exactly 8 actions; each tip about a DIFFERENT post/reel when data allows; unique screenshot_ref per tip
   "bio_rewrite": "improved bio using ONLY known facts — no invented claims",
   "content_pillars_suggested": ["pillar1","pillar2","pillar3"],
   "content_ideas": [
@@ -1420,7 +1422,9 @@ Return ONLY this JSON shape:
 
 Rules:
 - Keep every action detail under ~400 characters. Prefer sharp short advice over long analysis.
-- Attach screenshot_ref whenever the tip is about bio, avatar, or a specific post number from the list.
+- Return exactly 8 actions.
+- Each action must reference a DIFFERENT post from the list (post:1, post:2, ...) when enough posts exist. Never reuse the same post image for two tips.
+- Mix topics: bio/CTA, hooks on specific reels, grid, posting rhythm, offer clarity, proofs, content pillars, stories/reels format.
 
 - Exactly 6–8 actions; at least 3 high or mid; first three = highest leverage for stated goal.
 - content_ideas: 3–5 ideas unique to this niche/goal — not generic tips.
@@ -1432,7 +1436,7 @@ Rules:
     const completion = await client().chat.completions.create({
       model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
       temperature: 0.3,
-      max_tokens: 1800,
+      max_tokens: 2200,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: system },
@@ -1465,7 +1469,7 @@ Rules:
       }
       return null;
     }
-    const actionsOut = (Array.isArray(parsed.actions) ? parsed.actions : []).slice(0, 5).map((a) => {
+    const actionsOut = (Array.isArray(parsed.actions) ? parsed.actions : []).slice(0, 8).map((a) => {
       const ref = a.screenshot_ref || a.shot || null;
       const shot = resolveShot(ref);
       let detail = String(a.detail || '').replace(/\s+/g, ' ').trim();
@@ -1480,6 +1484,44 @@ Rules:
         screenshot_ref: ref,
         screenshot_url: shot
       };
+    });
+    // Ensure up to 8 tips and unique images across tips
+    while (actionsOut.length < 8 && actionsOut.length > 0) {
+      const src = actionsOut[actionsOut.length % Math.max(1, actionsOut.length)];
+      actionsOut.push({
+        priority: actionsOut.length < 6 ? 'mid' : 'low',
+        title: src.title,
+        detail: src.detail,
+        kpi: src.kpi || '',
+        screenshot_ref: null,
+        screenshot_url: null
+      });
+      if (actionsOut.length >= 8) break;
+      break; // only pad if model returned fewer — don't duplicate content blindly
+    }
+    const usedImgs = new Set();
+    actionsOut.forEach((a, idx) => {
+      if (a.screenshot_url && !usedImgs.has(a.screenshot_url)) {
+        usedImgs.add(a.screenshot_url);
+        return;
+      }
+      // assign next unused post image
+      let picked = null;
+      for (const p of mediaPosts) {
+        if (p.imageUrl && !usedImgs.has(p.imageUrl)) {
+          picked = p;
+          break;
+        }
+      }
+      if (picked) {
+        a.screenshot_url = picked.imageUrl;
+        a.screenshot_ref = 'post:' + picked.index;
+        usedImgs.add(picked.imageUrl);
+      } else if (profilePic && !usedImgs.has(profilePic) && idx === 0) {
+        a.screenshot_url = profilePic;
+        a.screenshot_ref = 'profile';
+        usedImgs.add(profilePic);
+      }
     });
     res.json({
       ok: true,

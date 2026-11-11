@@ -4004,31 +4004,38 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         if(act){
           var shots = (js.live && js.live.postsMedia) ? js.live.postsMedia : [];
           var profilePic = (js.live && js.live.profilePic) || '';
-          var actionList = js.actions || [];
+          var actionList = (js.actions || []).slice(0, 8);
+          var used = {};
+          function takeUnique(url){
+            if(!url || used[url]) return '';
+            used[url] = 1;
+            return url;
+          }
           act.innerHTML = actionList.map(function(a, idx){
-            var img = a.screenshot_url || '';
+            var img = '';
+            if(a.screenshot_url) img = takeUnique(a.screenshot_url);
             if(!img && a.screenshot_ref){
               var ref = String(a.screenshot_ref).toLowerCase();
-              if(ref === 'bio' || ref === 'profile' || ref === 'grid') img = profilePic || (shots[0] && shots[0].imageUrl) || '';
+              if(ref === 'bio' || ref === 'profile') img = takeUnique(profilePic);
               else {
                 var mm = ref.match(/^post:(\d+)$/);
                 if(mm){
                   var n = Number(mm[1]);
                   var p = shots.find(function(x){ return Number(x.index) === n; }) || shots[n-1];
-                  if(p && p.imageUrl) img = p.imageUrl;
+                  if(p && p.imageUrl) img = takeUnique(p.imageUrl);
                 }
               }
             }
-            // fallback: cycle available post images so cards are not empty
+            // unique fallback: next unused post image
             if(!img){
-              var title = String(a.title||'').toLowerCase();
-              var detail = String(a.detail||'').toLowerCase();
-              if(/bio|био|аватар|profile|позиц/.test(title+detail) && profilePic) img = profilePic;
-              else if(shots.length){
-                var sp = shots[idx % shots.length];
-                if(sp && sp.imageUrl) img = sp.imageUrl;
+              for(var si=0; si<shots.length; si++){
+                if(shots[si].imageUrl && !used[shots[si].imageUrl]){
+                  img = takeUnique(shots[si].imageUrl);
+                  break;
+                }
               }
             }
+            if(!img && profilePic && !used[profilePic]) img = takeUnique(profilePic);
             var imgHtml = img
               ? '<div class="acc-shot"><img src="'+String(img).replace(/"/g,'')+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.style.display=\'none\'"/></div>'
               : '';
