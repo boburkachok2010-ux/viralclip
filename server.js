@@ -1318,10 +1318,13 @@ Do NOT mix languages. Do NOT leave English filler if target is Russian or Uzbek.
 If target is Russian — write natural Russian, not English with Russian words.
 If target is Uzbek — write natural Uzbek (o'zbek tili), not Russian or English.
 JSON keys stay in English; VALUES are in ${langName}.
-For actions.detail use localized labels:
-- en: OBSERVATION / EVIDENCE / DIAGNOSIS / ACTION / EXAMPLE / MEASURE
-- ru: НАБЛЮДЕНИЕ / ДОКАЗАТЕЛЬСТВО / ДИАГНОЗ / ДЕЙСТВИЕ / ПРИМЕР / ЗАМЕР
-- uz: KUZATUV / DALIL / DIAGNOZ / HARAKAT / MISOL / O'LCHOV
+LENGTH RULES (critical — no walls of text):
+- summary: max 3 short sentences
+- strengths/weaknesses: max 4 items, each 1 short sentence with a fact from THIS account
+- actions: exactly 4 (2 high, 1 mid, 1 low). Each detail = 2–3 short sentences only: problem + exact fix + one example line. NO OBSERVATION/EVIDENCE/DIAGNOSIS labels. No essays.
+- bio_rewrite: short, under ~150 chars style
+- 7_day_plan: 7 lines, each under ~12 words
+- screenshot_ref: bio|profile|grid|post:1|post:2|post:3|null — link tip to a real visual when possible
 
 OUTPUT: JSON only (no markdown fences).`;
 
@@ -1347,7 +1350,7 @@ Return ONLY this JSON shape:
   "account_profile": "one-line strategic classification (purpose + niche + geo + model)",
   "classification_confidence": "high|mid|low",
   "overall_score": 0-100,
-  "summary": "5-8 sentences: what works, what blocks results, main opportunity — specific to THIS account",
+  "summary": "max 3 short sentences: what works, main problem, main opportunity — THIS account only",
   "scores": {
     "positioning": 0-100,
     "content_pillars": 0-100,
@@ -1362,9 +1365,10 @@ Return ONLY this JSON shape:
   "actions": [
     {
       "priority": "high|mid|low",
-      "title": "short specific title",
-      "detail": "OBSERVATION: ... EVIDENCE: ... DIAGNOSIS: ... ACTION: ... EXAMPLE: concrete text/hook/structure ... MEASURE: which KPI to watch",
-      "kpi": "primary KPI"
+      "title": "short title max 8 words",
+      "detail": "2-3 short sentences: what is wrong (with fact) + exact fix + one example line. No labels, no essay.",
+      "screenshot_ref": "bio|profile|grid|post:1|post:2|post:3|null",
+      "kpi": "one KPI"
     }
   ],
   "bio_rewrite": "improved bio using ONLY known facts — no invented claims",
@@ -1383,6 +1387,9 @@ Return ONLY this JSON shape:
 }
 
 Rules:
+- Keep every action detail under ~400 characters. Prefer sharp short advice over long analysis.
+- Attach screenshot_ref whenever the tip is about bio, avatar, or a specific post number from the list.
+
 - Exactly 6–8 actions; at least 3 high or mid; first three = highest leverage for stated goal.
 - content_ideas: 3–5 ideas unique to this niche/goal — not generic tips.
 - If data is thin, say so in summary; do not invent certainty or numbers.
@@ -1393,7 +1400,7 @@ Rules:
     const completion = await client().chat.completions.create({
       model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
       temperature: 0.3,
-      max_tokens: 4000,
+      max_tokens: 1800,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: system },
@@ -1411,6 +1418,37 @@ Rules:
       });
     }
 
+    const mediaPosts = (live && !live.error && Array.isArray(live.postsMedia)) ? live.postsMedia : [];
+    const profilePic = (live && !live.error && live.profilePic) ? live.profilePic : null;
+    function resolveShot(ref) {
+      const r = String(ref || '').toLowerCase();
+      if (!r || r === 'null') return null;
+      if (r === 'bio' || r === 'profile') return profilePic;
+      if (r === 'grid' && mediaPosts[0]) return mediaPosts[0].imageUrl || null;
+      const m = r.match(/^post:(\d+)$/);
+      if (m) {
+        const n = Number(m[1]);
+        const p = mediaPosts.find((x) => x.index === n) || mediaPosts[n - 1];
+        return p && p.imageUrl ? p.imageUrl : null;
+      }
+      return null;
+    }
+    const actionsOut = (Array.isArray(parsed.actions) ? parsed.actions : []).slice(0, 5).map((a) => {
+      const ref = a.screenshot_ref || a.shot || null;
+      const shot = resolveShot(ref);
+      let detail = String(a.detail || '').replace(/\s+/g, ' ').trim();
+      // strip long label prefixes if model still uses them
+      detail = detail.replace(/^(OBSERVATION|EVIDENCE|DIAGNOSIS|ACTION|EXAMPLE|MEASURE|НАБЛЮДЕНИЕ|ДОКАЗАТЕЛЬСТВО|ДИАГНОЗ|ДЕЙСТВИЕ|ПРИМЕР|ЗАМЕР)\s*:\s*/gi, '');
+      if (detail.length > 320) detail = detail.slice(0, 317) + '…';
+      return {
+        priority: a.priority || 'mid',
+        title: String(a.title || '').slice(0, 80),
+        detail,
+        kpi: String(a.kpi || '').slice(0, 80),
+        screenshot_ref: ref,
+        screenshot_url: shot
+      };
+    });
     res.json({
       ok: true,
       username: username || null,
@@ -1420,20 +1458,27 @@ Rules:
         following: live.following,
         postsCount: live.postsCount,
         verified: live.isVerified,
-        private: live.isPrivate
+        private: live.isPrivate,
+        profilePic,
+        postsMedia: mediaPosts.slice(0, 6).map((p) => ({
+          index: p.index,
+          imageUrl: p.imageUrl,
+          caption: (p.caption || '').slice(0, 100),
+          type: p.type
+        }))
       } : null,
-      account_profile: String(parsed.account_profile || '').slice(0, 400),
+      account_profile: String(parsed.account_profile || '').slice(0, 220),
       overall_score: Number(parsed.overall_score) || 0,
-      summary: String(parsed.summary || '').slice(0, 2500),
+      summary: String(parsed.summary || '').slice(0, 500),
       scores: parsed.scores || {},
-      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 8) : [],
-      weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.slice(0, 8) : [],
-      actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 10) : [],
-      plan7: Array.isArray(parsed['7_day_plan']) ? parsed['7_day_plan'].slice(0, 10) : (Array.isArray(parsed.plan7) ? parsed.plan7.slice(0, 10) : []),
-      bio_rewrite: String(parsed.bio_rewrite || '').slice(0, 500),
-      pillars: Array.isArray(parsed.content_pillars_suggested) ? parsed.content_pillars_suggested.slice(0, 6) : [],
-      content_ideas: Array.isArray(parsed.content_ideas) ? parsed.content_ideas.slice(0, 5) : [],
-      missing_data: Array.isArray(parsed.missing_data) ? parsed.missing_data.slice(0, 8) : [],
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 4).map((x) => String(x).slice(0, 140)) : [],
+      weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.slice(0, 4).map((x) => String(x).slice(0, 140)) : [],
+      actions: actionsOut,
+      plan7: Array.isArray(parsed['7_day_plan']) ? parsed['7_day_plan'].slice(0, 7) : (Array.isArray(parsed.plan7) ? parsed.plan7.slice(0, 7) : []),
+      bio_rewrite: String(parsed.bio_rewrite || '').slice(0, 220),
+      pillars: Array.isArray(parsed.content_pillars_suggested) ? parsed.content_pillars_suggested.slice(0, 4) : [],
+      content_ideas: Array.isArray(parsed.content_ideas) ? parsed.content_ideas.slice(0, 3) : [],
+      missing_data: Array.isArray(parsed.missing_data) ? parsed.missing_data.slice(0, 4) : [],
       engine: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
     });
   } catch (err) {

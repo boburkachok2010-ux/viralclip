@@ -656,6 +656,22 @@
 
 
 
+
+  .acc-action{display:flex;gap:14px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,0.02);}
+  .acc-shot{flex:0 0 72px;width:72px;height:72px;border-radius:12px;overflow:hidden;background:#111;}
+  .acc-shot img{width:100%;height:100%;object-fit:cover;display:block;}
+  .acc-action-body{flex:1;min-width:0;}
+  .acc-action-body h4{margin:0 0 6px;font-size:14px;}
+  .acc-action-body p{margin:0;font-size:13px;line-height:1.45;color:var(--muted);}
+  .acc-pr{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;background:rgba(255,59,92,0.15);color:var(--accent);margin-right:6px;}
+  .acc-action--high .acc-pr{background:rgba(255,59,92,0.2);}
+  .acc-action--mid .acc-pr{background:rgba(13,148,136,0.2);color:#5eead4;}
+  .acc-action--low .acc-pr{background:rgba(255,255,255,0.08);color:var(--muted);}
+  #accGallery{display:none;gap:10px;flex-wrap:wrap;margin:12px 0 18px;}
+  .acc-gal-item{width:72px;text-align:center;}
+  .acc-gal-item img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line);}
+  .acc-gal-item span{display:block;font-size:10px;color:var(--muted);margin-top:4px;}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1013,7 +1029,8 @@
       <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_weak">Weaknesses</h3>
       <ul class="acc-list" id="accWeak"></ul>
       <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_actions">Priority actions</h3>
-      <div id="accActions"></div>
+      <div id="accGallery"></div>
+        <div id="accActions"></div>
       <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_bio_new">Bio rewrite</h3>
       <p id="accBioNew" style="font-size:13.5px;color:var(--muted);line-height:1.5;"></p>
       <h3 style="margin:16px 0 0;font-size:15px;" data-i18n="acc_pillars">Suggested pillars</h3>
@@ -3985,9 +4002,43 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         fillList('accWeak', js.weaknesses);
         var act = document.getElementById('accActions');
         if(act){
+          var shots = (js.live && js.live.postsMedia) ? js.live.postsMedia : [];
+          var profilePic = (js.live && js.live.profilePic) || '';
           act.innerHTML = (js.actions||[]).map(function(a){
-            return '<div class="acc-action"><h4>['+String(a.priority||'mid')+'] '+String(a.title||'').replace(/</g,'&lt;')+'</h4><p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div>';
+            var img = a.screenshot_url || '';
+            if(!img && a.screenshot_ref){
+              var ref = String(a.screenshot_ref).toLowerCase();
+              if(ref === 'bio' || ref === 'profile') img = profilePic;
+              else {
+                var mm = ref.match(/^post:(\d+)$/);
+                if(mm){
+                  var n = Number(mm[1]);
+                  var p = shots.find(function(x){ return x.index === n; }) || shots[n-1];
+                  if(p && p.imageUrl) img = p.imageUrl;
+                }
+              }
+            }
+            var imgHtml = img
+              ? '<div class="acc-shot"><img src="'+String(img).replace(/"/g,'')+'" alt="" loading="lazy" referrerpolicy="no-referrer"/></div>'
+              : '';
+            var pr = String(a.priority||'mid');
+            return '<div class="acc-action acc-action--'+pr+'">'+imgHtml+
+              '<div class="acc-action-body"><h4><span class="acc-pr">'+pr+'</span> '+String(a.title||'').replace(/</g,'&lt;')+'</h4>'+
+              '<p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div></div>';
           }).join('') || '<p style="color:var(--muted)">—</p>';
+        }
+        // optional strip of screenshots row
+        var gallery = document.getElementById('accGallery');
+        if(gallery){
+          var ghtml = '';
+          if(js.live && js.live.profilePic){
+            ghtml += '<div class="acc-gal-item"><img src="'+String(js.live.profilePic).replace(/"/g,'')+'" alt="profile" loading="lazy" referrerpolicy="no-referrer"/><span>profile</span></div>';
+          }
+          (shots||[]).forEach(function(p){
+            if(p.imageUrl) ghtml += '<div class="acc-gal-item"><img src="'+String(p.imageUrl).replace(/"/g,'')+'" alt="" loading="lazy" referrerpolicy="no-referrer"/><span>post '+p.index+'</span></div>';
+          });
+          gallery.innerHTML = ghtml;
+          gallery.style.display = ghtml ? 'flex' : 'none';
         }
         var bn = document.getElementById('accBioNew');
         if(bn) bn.textContent = js.bio_rewrite || '—';
