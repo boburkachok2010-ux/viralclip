@@ -1128,15 +1128,43 @@ async function fetchInstagramProfile(username) {
     const row = Array.isArray(data) ? data[0] : data;
     if (!row || typeof row !== 'object') return { error: 'empty' };
 
-    const posts = row.latestPosts || row.recentPosts || row.latest_posts || row.posts || [];
-    const postLines = (Array.isArray(posts) ? posts : []).slice(0, 12).map((p, i) => {
+    const posts = row.latestPosts || row.recentPosts || row.latest_posts || row.posts || row.latestIgtvVideos || [];
+    function pickImage(p) {
+      if (!p || typeof p !== 'object') return null;
+      const candidates = [
+        p.displayUrl, p.display_url, p.thumbnailUrl, p.thumbnail_url,
+        p.imageUrl, p.image_url, p.url,
+        p.images && p.images[0],
+        p.childPosts && p.childPosts[0] && (p.childPosts[0].displayUrl || p.childPosts[0].thumbnailUrl),
+        p.videoUrl // last resort — may not render as img
+      ];
+      for (const c of candidates) {
+        if (typeof c === 'string' && /^https?:\/\//i.test(c) && !c.includes('instagram.com/p/')) return c;
+      }
+      return null;
+    }
+    const postsArr = (Array.isArray(posts) ? posts : []).slice(0, 9).map((p, i) => {
       const cap = (p.caption || p.text || '').toString().replace(/\s+/g, ' ').slice(0, 180);
       const likes = p.likesCount ?? p.likeCount ?? p.likes ?? '?';
       const comments = p.commentsCount ?? p.commentCount ?? p.comments ?? '?';
-      const typ = p.type || p.productType || (p.isVideo ? 'video' : 'post');
+      const typ = p.type || p.productType || (p.isVideo || p.videoUrl ? 'video' : 'post');
       const link = p.url || p.inputUrl || (p.shortCode ? `https://www.instagram.com/p/${p.shortCode}/` : '');
-      return `${i + 1}. [${typ}] likes=${likes} comments=${comments} ${link}\n   ${cap}`;
+      return {
+        index: i + 1,
+        type: typ,
+        likes,
+        comments,
+        link,
+        caption: cap,
+        imageUrl: pickImage(p)
+      };
     });
+    const postLines = postsArr.map((p) =>
+      `${p.index}. [${p.type}] likes=${p.likes} comments=${p.comments} img=${p.imageUrl ? 'yes' : 'no'} ${p.link}\n   ${p.caption}`
+    );
+    const profilePic =
+      row.profilePicUrlHD || row.profilePicUrl || row.profile_pic_url_hd || row.profile_pic_url ||
+      row.profilePic || row.profilePicture || row.profile_image || row.profilePhoto || null;
 
     return {
       source: 'apify',
@@ -1151,6 +1179,8 @@ async function fetchInstagramProfile(username) {
       isBusiness: !!(row.isBusinessAccount || row.is_business_account),
       externalUrl: row.externalUrl || row.external_url || '',
       profileUrl: row.url || `https://www.instagram.com/${u}/`,
+      profilePic: typeof profilePic === 'string' ? profilePic : null,
+      postsMedia: postsArr,
       postsText: postLines.join('\n'),
       rawSummary: JSON.stringify({
         username: row.username || u,
@@ -1161,7 +1191,9 @@ async function fetchInstagramProfile(username) {
         verified: row.verified || row.isVerified,
         private: row.private || row.isPrivate,
         business: row.isBusinessAccount,
-        bio: (row.biography || '').slice(0, 300)
+        bio: (row.biography || '').slice(0, 300),
+        profilePic: !!profilePic,
+        postsWithImages: postsArr.filter((p) => p.imageUrl).length
       })
     };
   } catch (e) {
