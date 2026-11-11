@@ -1355,6 +1355,8 @@ LENGTH RULES (critical — no walls of text):
 - strengths/weaknesses: max 4 items, each 1 short sentence with a fact from THIS account
 - actions: exactly 8 (3 high, 3 mid, 2 low). Each detail = 2–3 short sentences: problem + exact fix + one example. NO OBSERVATION/EVIDENCE labels. No essays.
 - Each action MUST use a different screenshot_ref when posts exist: post:1, post:2, post:3... then bio/profile. Do NOT attach the same post image to multiple tips.
+- CRITICAL — CONTENT MATCH: If screenshot_ref is post:N, the tip MUST be about THAT post's real topic from its caption (e.g. British vs American accent, IELTS tip, classroom shot). FORBIDDEN: generic tips like "add testimonials", "post more often", "add CTA" on a reel about accents unless the caption truly lacks CTA and you say so while naming the reel topic.
+- First sentence of detail MUST mention what the reel/post is actually about (quote or paraphrase caption).
 - bio_rewrite: short, under ~150 chars style
 - 7_day_plan: 7 lines, each under ~12 words
 - screenshot_ref: bio|profile|grid|post:1|post:2|post:3|null — link tip to a real visual when possible
@@ -1375,8 +1377,13 @@ Owner-stated niche: ${niche || 'not specified'}
 Owner-stated goal: ${goal || 'not specified'}
 Bio: ${bio || 'not provided'}
 Stats / metrics notes: ${stats || 'not provided'}
-Recent posts / Reels (live scrape and/or owner notes):
+Recent posts / Reels (NUMBERED — each tip must match the caption topic of its number):
 ${posts || 'not provided'}
+
+For every action with screenshot_ref post:N you MUST:
+1) Name the topic of post N from its caption in the first sentence
+2) Give an edit/content fix for THAT topic only
+3) Never invent testimonials/prices/courses if that post is about language/accents/grammar etc.
 
 Return ONLY this JSON shape:
 {
@@ -1424,7 +1431,8 @@ Rules:
 - Keep every action detail under ~400 characters. Prefer sharp short advice over long analysis.
 - Return exactly 8 actions.
 - Each action must reference a DIFFERENT post from the list (post:1, post:2, ...) when enough posts exist. Never reuse the same post image for two tips.
-- Mix topics: bio/CTA, hooks on specific reels, grid, posting rhythm, offer clarity, proofs, content pillars, stories/reels format.
+- CONTENT-LOCKED TIPS: For post:N, read caption N. Tip must improve THAT reel (hook, on-screen text, topic clarity, CTA at end of THAT topic). Ban generic SMM that ignores caption topic (no "student testimonials" on an accent-comparison reel).
+- At least 6 of 8 actions must be post-specific (post:1…post:6). At most 2 may be bio/profile/account-level.
 
 - Exactly 6–8 actions; at least 3 high or mid; first three = highest leverage for stated goal.
 - content_ideas: 3–5 ideas unique to this niche/goal — not generic tips.
@@ -1476,13 +1484,21 @@ Rules:
       // strip long label prefixes if model still uses them
       detail = detail.replace(/^(OBSERVATION|EVIDENCE|DIAGNOSIS|ACTION|EXAMPLE|MEASURE|НАБЛЮДЕНИЕ|ДОКАЗАТЕЛЬСТВО|ДИАГНОЗ|ДЕЙСТВИЕ|ПРИМЕР|ЗАМЕР)\s*:\s*/gi, '');
       if (detail.length > 320) detail = detail.slice(0, 317) + '…';
+      let caption = '';
+      const mm = String(ref || '').match(/^post:(\d+)$/i);
+      if (mm) {
+        const n = Number(mm[1]);
+        const p = mediaPosts.find((x) => x.index === n) || mediaPosts[n - 1];
+        if (p && p.caption) caption = String(p.caption).slice(0, 120);
+      }
       return {
         priority: a.priority || 'mid',
         title: String(a.title || '').slice(0, 80),
         detail,
         kpi: String(a.kpi || '').slice(0, 80),
         screenshot_ref: ref,
-        screenshot_url: shot
+        screenshot_url: shot,
+        post_caption: caption
       };
     });
     // Ensure up to 8 tips and unique images across tips

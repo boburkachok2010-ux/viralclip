@@ -663,6 +663,7 @@
   .acc-action-body{flex:1;min-width:0;}
   .acc-action-body h4{margin:0 0 6px;font-size:14px;}
   .acc-action-body p{margin:0;font-size:13px;line-height:1.45;color:var(--muted);}
+  .acc-cap{font-size:11px;color:var(--muted);opacity:.85;margin:0 0 6px;font-style:italic;line-height:1.35;}
   .acc-pr{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;background:rgba(255,59,92,0.15);color:var(--accent);margin-right:6px;}
   .acc-action--high .acc-pr{background:rgba(255,59,92,0.2);}
   .acc-action--mid .acc-pr{background:rgba(13,148,136,0.2);color:#5eead4;}
@@ -4036,12 +4037,20 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
               }
             }
             if(!img && profilePic && !used[profilePic]) img = takeUnique(profilePic);
+            var cap = a.post_caption || '';
+            if(!cap && img){
+              for(var ci=0;ci<shots.length;ci++){
+                if(shots[ci].imageUrl === img && shots[ci].caption){ cap = shots[ci].caption; break; }
+              }
+            }
             var imgHtml = img
               ? '<div class="acc-shot"><img src="'+String(img).replace(/"/g,'')+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.style.display=\'none\'"/></div>'
               : '';
             var pr = String(a.priority||'mid');
+            var capHtml = cap ? '<div class="acc-cap">«'+String(cap).replace(/</g,'&lt;').slice(0,90)+(cap.length>90?'…':'')+'»</div>' : '';
             return '<div class="acc-action acc-action--'+pr+'">'+imgHtml+
               '<div class="acc-action-body"><h4><span class="acc-pr">'+pr+'</span> '+String(a.title||'').replace(/</g,'&lt;')+'</h4>'+
+              capHtml+
               '<p>'+String(a.detail||'').replace(/</g,'&lt;')+'</p></div></div>';
           }).join('') || '<p style="color:var(--muted)">—</p>';
         }
