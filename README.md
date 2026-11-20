@@ -179,3 +179,21 @@ If Stripe does not accept UZ as merchant country, use Payme/Click later or open 
    - `ADMIN_EMAILS=boburkachok2010@gmail.com`
 4. Login as that Gmail → Admin panel at bottom of site
 5. Note: on Render free tier `users.json` resets when the service redeploys/sleeps — for production use a real database later
+
+## Payments (Stripe)
+
+1. Create account at https://dashboard.stripe.com
+2. Developers → API keys → copy **Secret key** (`sk_test_...` for tests, `sk_live_...` for real money)
+3. On Render Environment set:
+   - `FREE_MODE=0`
+   - `STRIPE_SECRET_KEY=sk_...`
+   - `PUBLIC_URL=https://your-site.onrender.com`
+   - `TOKEN_SECRET=long-random-string`
+4. Optional webhook: Stripe → Webhooks → endpoint `https://your-site.onrender.com/api/billing/webhook` → event `checkout.session.completed` → put `STRIPE_WEBHOOK_SECRET=whsec_...`
+5. Redeploy. Pricing section appears; login → Choose plan → Stripe Checkout.
+
+**Coins:** 10 per video analysis. Signup bonus: 10 coins.  
+**Plans:** Starter $10 / Pro $16 / Studio $24 (Studio includes IG account audit).  
+**Packs:** 50/$6, 150/$15, 400/$35.
+
+If Stripe does not accept your country, keep `FREE_MODE=1` until you connect another provider.
