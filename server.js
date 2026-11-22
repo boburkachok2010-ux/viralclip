@@ -325,8 +325,8 @@ app.post(
           code: 'AUTH'
         });
       }
-      // Coins: required when FREE_MODE=0
-      if (!freeMode && paidUser) {
+      // Coins: required when FREE_MODE=0 (admins always free)
+      if (!freeMode && paidUser && !isAdminUser(paidUser)) {
         const coins = Number(paidUser.coins) || 0;
         if (coins < COINS_PER_ANALYSIS) {
           return res.status(402).json({
@@ -471,14 +471,15 @@ JSON only.`;
       let coinsLeft = null;
       let charged = 0;
       if (paidUser) {
+        const adminFree = isAdminUser(paidUser);
         const after = updateUser(paidUser.email, (u) => {
-          if (!freeMode) {
+          if (!freeMode && !adminFree) {
             u.coins = Math.max(0, (Number(u.coins) || 0) - COINS_PER_ANALYSIS);
           }
           u.analysesUsed = (u.analysesUsed || 0) + 1;
         });
-        coinsLeft = freeMode ? null : (after ? after.coins : null);
-        charged = freeMode ? 0 : COINS_PER_ANALYSIS;
+        coinsLeft = (freeMode || adminFree) ? null : (after ? after.coins : null);
+        charged = (freeMode || adminFree) ? 0 : COINS_PER_ANALYSIS;
       }
       const aiScore = Number(parsed.score);
       res.json({
@@ -603,6 +604,10 @@ function adminEmails() {
 }
 function isAdminEmail(email) {
   return adminEmails().includes(String(email || '').toLowerCase());
+}
+/** Admin account: unlimited free access (no coins / plan gates) */
+function isAdminUser(user) {
+  return !!(user && isAdminEmail(user.email));
 }
 function requireAdmin(req, res) {
   const user = authUser(req);
@@ -1135,7 +1140,7 @@ app.post('/api/account-audit', rateLimit('acct_audit', 10, 60 * 60 * 1000), asyn
     const freeMode = String(process.env.FREE_MODE || '1') !== '0';
     const devPay = freeMode || String(process.env.ALLOW_DEV_PAYMENTS || '') === '1';
     const plan = (user && user.plan) || 'free';
-    const allowed = freeMode || devPay || plan === 'studio';
+    const allowed = freeMode || devPay || plan === 'studio' || isAdminUser(user);
     if (!allowed) {
       return res.status(403).json({
         error: 'Studio plan required',
@@ -1508,9 +1513,9 @@ app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), as
     if (!user && !freeMode) {
       return res.status(401).json({ error: 'Login required', error_ru: 'Войдите в аккаунт', code: 'AUTH' });
     }
-    // Prefer Studio when payments on; allow all when FREE_MODE
+    // Prefer Pro/Studio when payments on; admin email always free
     const plan = (user && user.plan) || 'free';
-    if (!freeMode && plan !== 'studio' && plan !== 'pro') {
+    if (!freeMode && !isAdminUser(user) && plan !== 'studio' && plan !== 'pro') {
       return res.status(403).json({
         error: 'Pro or Studio plan required',
         error_ru: 'Генератор сценариев доступен на тарифах Pro и Studio',
