@@ -28,6 +28,14 @@ const REELS_PROMPT_EN = (() => {
     return 'You are a genre-aware Reels analyst. JSON only.';
   }
 })();
+
+const SCRIPTWRITER_PROMPT = (() => {
+  try {
+    return fs.readFileSync(path.join(__dirname, 'prompts', 'scriptwriter.txt'), 'utf8');
+  } catch (e) {
+    return 'You are a Reels scriptwriter. Return JSON only with ideas or full scripts.';
+  }
+})();
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -317,8 +325,19 @@ app.post(
           code: 'AUTH'
         });
       }
-      // Coins disabled while FREE_MODE=1
-      const bal = 9999;
+      // Coins: required when FREE_MODE=0
+      if (!freeMode && paidUser) {
+        const coins = Number(paidUser.coins) || 0;
+        if (coins < COINS_PER_ANALYSIS) {
+          return res.status(402).json({
+            error: 'Not enough coins',
+            error_ru: 'Недостаточно монет. Нужно ' + COINS_PER_ANALYSIS + ', у вас ' + coins + '. Раздел Pricing или дождитесь начисления.',
+            code: 'COINS',
+            need: COINS_PER_ANALYSIS,
+            have: coins
+          });
+        }
+      }
 
       if (!frames.length) {
         return res.status(400).json({ error: 'frames[] required' });
@@ -392,26 +411,61 @@ JSON only.`;
       });
 
       const openai = client();
-      const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
-        temperature: 0.2,
-        max_tokens: 3200,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: language === 'en' ? systemEn : (systemRu + (language === 'uz' ? '\n\nCRITICAL: Entire JSON output (overall_comment, title, advice) MUST be in Uzbek (o\'zbek tili). Do not use Russian.' : '')) },
-          { role: 'user', content }
-        ]
-      });
+      const sysContent = language === 'en'
+        ? systemEn
+        : (systemRu + (language === 'uz' ? '\n\nCRITICAL: Entire JSON output (overall_comment, title, advice) MUST be in Uzbek (o\'zbek tili). Do not use Russian.' : ''));
+      if (!sysContent || sysContent.length < 200) {
+        console.warn('[analyze] system prompt short — check prompts/ folder on server');
+      }
+      let completion;
+      let lastErr = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          completion = await openai.chat.completions.create({
+            model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+            temperature: 0.2,
+            max_tokens: 3200,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: sysContent },
+              { role: 'user', content }
+            ]
+          });
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.warn('[analyze] openai attempt', attempt + 1, e.message);
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+      if (lastErr || !completion) {
+        throw lastErr || new Error('OpenAI empty response');
+      }
 
       const raw = completion.choices?.[0]?.message?.content || '{}';
       let parsed;
       try {
         parsed = JSON.parse(raw);
       } catch {
-        parsed = { overall_comment: raw, tips: [] };
+        // try extract JSON object
+        const m = String(raw).match(/\{[\s\S]*\}/);
+        try {
+          parsed = m ? JSON.parse(m[0]) : { overall_comment: raw, tips: [] };
+        } catch {
+          parsed = { overall_comment: raw, tips: [] };
+        }
       }
 
-      const tips = Array.isArray(parsed.tips) ? parsed.tips : [];
+      let tips = Array.isArray(parsed.tips) ? parsed.tips : [];
+      // Dedupe by rounded time + severity
+      const seenTip = new Set();
+      tips = tips.filter((tip) => {
+        const key = (Number(tip.t) || 0).toFixed(1) + '|' + String(tip.severity || '') + '|' + String(tip.title || '').slice(0, 40);
+        if (seenTip.has(key)) return false;
+        seenTip.add(key);
+        return true;
+      });
       const order = { high: 0, mid: 1, low: 2 };
       const sorted = tips.slice().sort((a, b) => (order[a.priority] ?? 1) - (order[b.priority] ?? 1));
       let coinsLeft = null;
@@ -1441,6 +1495,83 @@ Rules:
 });
 
 
+
+
+// ===== Script generator (ideas + full scripts) =====
+app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), async (req, res) => {
+  try {
+    if (!hasKey()) {
+      return res.status(503).json({ error: 'OPENAI_API_KEY missing', error_ru: 'Нет OPENAI_API_KEY' });
+    }
+    const user = authUser(req);
+    const freeMode = String(process.env.FREE_MODE || '1') !== '0';
+    if (!user && !freeMode) {
+      return res.status(401).json({ error: 'Login required', error_ru: 'Войдите в аккаунт', code: 'AUTH' });
+    }
+    // Prefer Studio when payments on; allow all when FREE_MODE
+    const plan = (user && user.plan) || 'free';
+    if (!freeMode && plan !== 'studio' && plan !== 'pro') {
+      return res.status(403).json({
+        error: 'Pro or Studio plan required',
+        error_ru: 'Генератор сценариев доступен на тарифах Pro и Studio',
+        code: 'PLAN'
+      });
+    }
+    const body = req.body || {};
+    const mode = String(body.mode || 'ideas') === 'script' ? 'script' : 'ideas';
+    const language = body.language === 'en' ? 'en' : (body.language === 'uz' ? 'uz' : 'ru');
+    const topic = String(body.topic || '').trim().slice(0, 500);
+    if (!topic) {
+      return res.status(400).json({ error: 'topic required', error_ru: 'Укажите тему или задачу' });
+    }
+    const audience = String(body.audience || '').trim().slice(0, 200);
+    const goal = String(body.goal || '').trim().slice(0, 200);
+    const format = String(body.format || '').trim().slice(0, 80);
+    const tone = String(body.tone || '').trim().slice(0, 80);
+    const duration = Math.min(90, Math.max(5, Number(body.duration) || 20));
+    const resources = String(body.resources || '').trim().slice(0, 300);
+    const idea = String(body.idea || '').trim().slice(0, 1000);
+    const count = Math.min(8, Math.max(3, Number(body.count) || 5));
+    const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
+
+    const userPrompt = [
+      `MODE: ${mode}`,
+      `OUTPUT LANGUAGE: ${langName} (all string values in this language)`,
+      `TOPIC / BRIEF: ${topic}`,
+      audience ? `AUDIENCE: ${audience}` : '',
+      goal ? `GOAL: ${goal}` : '',
+      format ? `PREFERRED FORMAT: ${format}` : 'PREFERRED FORMAT: choose best for the goal',
+      tone ? `TONE: ${tone}` : '',
+      `TARGET DURATION: ~${duration}s`,
+      resources ? `PRODUCTION RESOURCES: ${resources}` : 'PRODUCTION RESOURCES: phone, 1 person if possible',
+      idea ? `BASE IDEA TO DEVELOP: ${idea}` : '',
+      mode === 'ideas' ? `Generate ${count} distinct ideas.` : 'Write one full shoot-ready script.',
+      'JSON only.'
+    ].filter(Boolean).join('\n');
+
+    const completion = await client().chat.completions.create({
+      model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+      temperature: 0.7,
+      max_tokens: mode === 'ideas' ? 2200 : 2800,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SCRIPTWRITER_PROMPT },
+        { role: 'user', content: userPrompt }
+      ]
+    });
+    const raw = completion.choices?.[0]?.message?.content || '{}';
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch {
+      const m = String(raw).match(/\{[\s\S]*\}/);
+      parsed = m ? JSON.parse(m[0]) : { error: 'bad_json', raw: String(raw).slice(0, 500) };
+    }
+    res.json({ ok: true, mode, language, result: parsed, engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini' });
+  } catch (err) {
+    console.error('[script-generate]', err.message);
+    res.status(err?.status || 500).json({ error: err.message || 'script failed' });
+  }
+});
 
 // ===== Admin panel API =====
 app.get('/api/admin/users', (req, res) => {

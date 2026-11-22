@@ -673,6 +673,23 @@
   .acc-gal-item img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line);}
   .acc-gal-item span{display:block;font-size:10px;color:var(--muted);margin-top:4px;}
 
+
+  /* Multi-page app */
+  .app-page{display:none;min-height:70vh;padding-bottom:80px;}
+  .app-page.is-active{display:block;}
+  .login-warn{display:none;margin:12px 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,59,92,0.35);background:rgba(255,59,92,0.08);color:var(--ink);font-size:13px;line-height:1.45;}
+  .login-warn strong{color:var(--accent);}
+  .login-warn a{color:var(--accent);text-decoration:underline;cursor:pointer;}
+  .script-grid{display:grid;gap:14px;margin-top:18px;}
+  .script-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(255,255,255,0.02);}
+  .script-card h4{margin:0 0 8px;font-size:15px;}
+  .script-card p{margin:0 0 6px;font-size:13px;color:var(--muted);line-height:1.45;}
+  .script-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+  .script-table th,.script-table td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left;}
+  .script-form label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px;}
+  .script-form input,.script-form select,.script-form textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0c0c10;color:var(--ink);}
+  .script-form textarea{min-height:90px;resize:vertical;}
+  .script-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -720,10 +737,11 @@
 <nav id="nav">
   <a href="#" class="logo" style="text-decoration:none;color:inherit"><img class="logo-img" src="/logo.png" alt="ViralClip" width="36" height="36"><span>ViralClip</span></a>
   <div class="nav-links">
-    <a href="#analyzer" data-i18n="nav_analyze">Analyze</a>
-<a href="#scores" data-i18n="nav_scoring">Scoring</a>
-    <a href="#account-audit" data-i18n="nav_account_audit">IG Account</a>
-    <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
+    <a href="#home" data-page="home" data-i18n="nav_home">Home</a>
+    <a href="#analyze" data-page="analyze" data-i18n="nav_analyze">Analyze</a>
+    <a href="#account" data-page="account" data-i18n="nav_account_audit">IG Account</a>
+    <a href="#scripts" data-page="scripts" data-i18n="nav_scripts">Scripts</a>
+    <a href="#pricing" data-page="pricing" data-i18n="nav_pricing">Pricing</a>
 </div>
   <div class="nav-right">
     <span class="coin-badge" id="coinBadge" style="display:none">0 🪙</span>
@@ -734,7 +752,7 @@
     </div>
     <a href="#admin-panel" id="adminNavLink" class="btn-ghost magnetic" style="display:none;padding:8px 14px;font-size:13px;border:1px solid rgba(255,59,92,0.5);border-radius:999px;color:var(--accent);text-decoration:none;">Admin</a>
     <button type="button" class="btn-ghost magnetic" id="authBtn" style="padding:8px 14px;font-size:13px;border:1px solid var(--line);border-radius:999px;" data-i18n="nav_account">Log in</button>
-    <a href="#analyzer" class="nav-cta magnetic" data-i18n="nav_try">Try it free</a>
+    <a href="#analyze" class="nav-cta magnetic" data-page="analyze" data-i18n="nav_try">Try it free</a>
   </div>
 </nav>
 
@@ -831,6 +849,11 @@
         <div id="preAnalyze">
           <div class="cost-row"><span data-i18n="cost_label">Analysis</span><b data-i18n="cost_value">10 🪙</b></div>
           <div class="file-meta" id="fileMeta" data-i18n="file_meta_default">Upload a clip to begin.</div>
+<div class="login-warn" id="loginWarnAnalyze">
+  <strong data-i18n="login_warn_title">Сначала войдите в аккаунт</strong>
+  <span data-i18n="login_warn_body"> Без входа анализ будет шаблонным. Нажмите «Войти» сверху, затем Analyze.</span>
+  <a id="loginWarnLink" data-i18n="login_warn_link">Войти сейчас</a>
+</div>
 <button class="btn-primary btn-block magnetic" id="analyzeBtn" disabled data-i18n="analyze_btn">Analyze video</button>
           <div class="analyze-status" id="analyzeStatus"></div>
           <div id="analyzeProg" style="display:none;height:4px;border-radius:4px;background:rgba(244,243,241,.08);margin-top:8px;overflow:hidden"><i id="analyzeProgBar" style="display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-2),var(--accent));transition:width .25s"></i></div>
@@ -1042,6 +1065,43 @@
   </div>
 </section>
 
+
+<section class="wrap app-page" id="page-scripts" data-page-panel="scripts" style="padding-top:100px;">
+  <span class="kicker reveal" data-i18n="scripts_kicker">Script lab</span>
+  <h2 class="reveal" data-i18n="scripts_h2" style="max-width:640px;">Generator of ideas & shoot-ready scripts</h2>
+  <p class="reveal" data-i18n="scripts_p" style="color:var(--muted);max-width:560px;margin-top:10px;">Meme, sketch, cinematic, expert — not everything becomes a talking head. Pro/Studio when payments are on.</p>
+  <div class="login-warn" id="loginWarnScripts" style="max-width:560px;">
+    <strong data-i18n="login_warn_title">Сначала войдите в аккаунт</strong>
+    <span data-i18n="scripts_login_body"> Генератор сценариев доступен после входа.</span>
+  </div>
+  <div class="script-form reveal" style="max-width:640px;margin-top:8px;">
+    <label data-i18n="scripts_topic">Тема / задача</label>
+    <textarea id="scriptTopic" placeholder="Напр: 5 идей для курсов IELTS в Ташкенте"></textarea>
+    <label data-i18n="scripts_audience">Аудитория (необязательно)</label>
+    <input id="scriptAudience" placeholder="студенты 16–25" />
+    <label data-i18n="scripts_goal">Цель</label>
+    <input id="scriptGoal" placeholder="подписка / заявки / юмор" />
+    <label data-i18n="scripts_format">Формат</label>
+    <select id="scriptFormat">
+      <option value="">Auto</option>
+      <option value="meme">Meme</option>
+      <option value="sketch">Sketch</option>
+      <option value="talking_head">Talking head</option>
+      <option value="cinematic">Cinematic</option>
+      <option value="ugc">UGC / product</option>
+      <option value="tutorial">Tutorial</option>
+      <option value="story">Story</option>
+    </select>
+    <label data-i18n="scripts_duration">Длительность (сек)</label>
+    <input id="scriptDuration" type="number" min="8" max="90" value="20" />
+    <div class="script-actions">
+      <button type="button" class="btn-primary magnetic" id="scriptIdeasBtn" data-i18n="scripts_btn_ideas">Сгенерировать идеи</button>
+      <button type="button" class="btn-ghost magnetic" id="scriptFullBtn" data-i18n="scripts_btn_full">Полный сценарий</button>
+    </div>
+  </div>
+  <div id="scriptOut" class="script-grid reveal" style="max-width:800px;"></div>
+</section>
+
 <section class="wrap" id="pricing" style="padding-top:80px;padding-bottom:40px;">
   <span class="kicker reveal" data-i18n="pricing_kicker">Pricing</span>
   <h2 class="reveal" data-i18n="pricing_h2" style="max-width:640px;">Coins & plans</h2>
@@ -1165,12 +1225,27 @@
   var LANG = (function(){ try{ var s=localStorage.getItem('viralclip_lang'); if(s==='en'||s==='ru'||s==='uz') return s; }catch(e){} var n=(navigator.language||'').toLowerCase(); if(n.indexOf('ru')===0)return 'ru'; if(n.indexOf('uz')===0)return 'uz'; return 'en'; })();
   var I18N = {
     en: {
-      nav_analyze:'Analyze', 
+      nav_home:'Home', nav_analyze:'Analyze', nav_scripts:'Scripts', 
 
  nav_scoring:'Scoring',   nav_try:'Try it free', nav_account:'Log in', nav_logout:'Log out',
       auth_email:'Email', auth_pass:'Password', auth_name:'Name',
       auth_or:'or', auth_login_btn:'Log in', auth_reg_btn:'Create account',
       auth_note:'1 analysis = 10 coins. New accounts get 10 free coins.',
+      login_warn_title:'Log in first',
+      login_warn_body:' Without login, tips are template-only. Click Log in above, then Analyze.',
+      login_warn_link:'Log in now',
+      scripts_kicker:'Script lab',
+      scripts_h2:'Ideas & shoot-ready scripts',
+      scripts_p:'Meme, sketch, cinematic, expert — format follows the idea. Pro/Studio when paid mode is on.',
+      scripts_login_body:' Script generator needs an account.',
+      scripts_topic:'Topic / brief',
+      scripts_audience:'Audience (optional)',
+      scripts_goal:'Goal',
+      scripts_format:'Format',
+      scripts_duration:'Duration (sec)',
+      scripts_btn_ideas:'Generate ideas',
+      scripts_btn_full:'Full script',
+      
 
       hero_eyebrow:'AI video audit · free',
       hero_h1_1:'Your video is', hero_h1_2:'bleeding views.', hero_h1_3:'Find out why.',
@@ -1266,7 +1341,7 @@
       strength_thumb:'Thumbnail frame has clear expression and high contrast.'
     },
     ru: {
-      nav_analyze:'Анализ', 
+      nav_home:'Главная', nav_analyze:'Анализ', nav_scripts:'Сценарии', 
 
  nav_scoring:'Оценка',   nav_try:'Попробовать бесплатно', nav_account:'Войти', nav_logout:'Выйти',
       auth_email:'Email', auth_pass:'Пароль', auth_name:'Имя',
@@ -1319,6 +1394,21 @@
       founder_quote:'«Я монтирую чужие каналы с четырнадцати лет. ViralClip — инструмент, который я хотел бы иметь тогда — сделан автором для авторов, а не комитетом».',
       founder_attr:'— Основатель ViralClip',
       nav_account_audit:'IG аккаунт',
+      login_warn_title:'Сначала войдите в аккаунт',
+      login_warn_body:' Без входа советы будут шаблонными. Нажмите «Войти» сверху, затем Analyze.',
+      login_warn_link:'Войти сейчас',
+      scripts_kicker:'Сценарии',
+      scripts_h2:'Идеи и готовые сценарии для съёмки',
+      scripts_p:'Мем, скетч, cinematic, эксперт — формат под задачу. При оплате — Pro/Studio.',
+      scripts_login_body:' Генератор доступен после входа.',
+      scripts_topic:'Тема / задача',
+      scripts_audience:'Аудитория (необязательно)',
+      scripts_goal:'Цель',
+      scripts_format:'Формат',
+      scripts_duration:'Длительность (сек)',
+      scripts_btn_ideas:'Сгенерировать идеи',
+      scripts_btn_full:'Полный сценарий',
+      
       acc_kicker:'Бесплатно · бета', acc_h2:'Аудит Instagram-аккаунта',
       acc_p:'Не один ролик — весь профиль: bio, столпы контента, паттерн хуков, сетка, CTA. Сейчас бесплатно на время тестов.',
       acc_user:'Ник Instagram', acc_niche:'Ниша', acc_goal:'Цель', acc_bio:'Bio (вставьте текущий)',
@@ -1367,7 +1457,7 @@
       strength_thumb:'Стоп-кадр обложки с чёткой эмоцией и высоким контрастом.'
     },
   uz: {
-    nav_analyze:'Tahlil',
+    nav_home:'Bosh sahifa', nav_analyze:'Tahlil', nav_scripts:'Stsenariylar',
     nav_scoring:'Baholash',
     nav_account_audit:'IG akkaunt',
     nav_pricing:'Narxlar',
@@ -2908,6 +2998,17 @@
   analyzeBtn.addEventListener('click', async function(){
     if(!appState.currentFile) return;
     if(!appState.durationOk){ showToast(I18N[LANG].toast_too_long); return; }
+    try {
+      var u = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+      if(!(u && u.email)){
+        showToast(LANG==='ru' ? 'Сначала войдите в аккаунт — иначе будут шаблонные советы' : 'Log in first — otherwise tips are templates only');
+        var w = document.getElementById('loginWarnAnalyze');
+        if(w){ w.style.display = 'block'; w.scrollIntoView({behavior:'smooth',block:'center'}); }
+        var b = document.getElementById('authBtn');
+        if(b) setTimeout(function(){ b.click(); }, 400);
+        return;
+      }
+    } catch(e){}
     analyzeBtn.disabled = true;
     scanEls.forEach(function(s){ if(s) s.classList.add('active'); });
     var apiKey = ''; // key only on server
@@ -3089,7 +3190,8 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
       }
       addItem({ f: frs[0], m: ranked[0] ? ranked[0].m : 0.05, phase: 'hook', weakness: 1 });
       ranked.forEach(function(it){ if(picked.length < 5) addItem(it); });
-      addItem({ f: frs[frs.length-1], m: 0.05, phase: 'cta', weakness: 1 });
+      var hasCta = picked.some(function(p){ return p.phase === 'cta'; });
+      if(!hasCta) addItem({ f: frs[frs.length-1], m: 0.05, phase: 'cta', weakness: 1 });
 
       picked.forEach(function(it){
         var t = it.f.t;
@@ -3209,7 +3311,7 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
       head.textContent = ru
         ? (aiPack && aiPack.tips && aiPack.tips.length
             ? 'Разбор слабых кадров (AI + скриншоты)'
-            : 'Разбор слабых кадров (скриншоты) — AI не ответил, локальный разбор')
+            : 'Разбор слабых кадров — AI не ответил (проверь вход, монеты, OpenAI ключ). Локальный разбор:')
         : (aiPack && aiPack.tips && aiPack.tips.length
             ? 'Weak frames (AI + screenshots)'
             : 'Weak frames (screenshots) — local fallback');
@@ -3264,6 +3366,20 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
         });
         issueList.appendChild(box);
       }
+
+      // Dedupe local/AI issues (same time + key + similar text)
+      (function(){
+        var seen = {};
+        var uniq = [];
+        issues.forEach(function(iss){
+          var t = (Math.round((Number(iss.t)||0) * 2) / 2).toFixed(1);
+          var key = t + '|' + String(iss.key||'') + '|' + String(iss.text||'').slice(0, 48);
+          if(seen[key]) return;
+          seen[key] = 1;
+          uniq.push(iss);
+        });
+        issues = uniq;
+      })();
 
       issues.forEach(function(iss){
         var el = document.createElement('div');
@@ -4095,6 +4211,150 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
       }
     });
   })();
+
+
+  /* ===== Multi-page router ===== */
+  function showAppPage(name){
+    name = name || 'home';
+    if(name === 'analyzer') name = 'analyze';
+    if(name === 'account-audit') name = 'account';
+    var toolIds = {
+      analyze: 'analyzer',
+      account: 'account-audit',
+      pricing: 'pricing',
+      scripts: 'page-scripts'
+    };
+    var isTool = !!toolIds[name];
+    // Tool panels
+    Object.keys(toolIds).forEach(function(key){
+      var el = document.getElementById(toolIds[key]);
+      if(!el) return;
+      var on = isTool && name === key;
+      el.style.display = on ? '' : 'none';
+      if(key === 'scripts') el.classList.toggle('is-active', on);
+    });
+    // Marketing / home sections: everything that is not a tool panel or modal
+    document.querySelectorAll('body > section, main > section, body > footer, body > .hero').forEach(function(sec){
+      var id = sec.id || '';
+      if(id === 'analyzer' || id === 'account-audit' || id === 'pricing' || id === 'page-scripts') return;
+      if(id === 'authModal' || (sec.classList && sec.classList.contains('modal-backdrop'))) return;
+      sec.style.display = isTool ? 'none' : '';
+    });
+    // Also sections nested in body without being direct tool
+    document.querySelectorAll('section.wrap').forEach(function(sec){
+      var id = sec.id || '';
+      if(id === 'analyzer' || id === 'account-audit' || id === 'pricing' || id === 'page-scripts') return;
+      if(isTool) sec.style.display = 'none';
+      else if(sec.style.display === 'none' && !toolIds[name]) sec.style.display = '';
+    });
+    try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(e){ window.scrollTo(0,0); }
+    document.querySelectorAll('a[data-page]').forEach(function(a){
+      var on = a.getAttribute('data-page') === name || (name==='home' && a.getAttribute('data-page')==='home');
+      a.style.opacity = on ? '1' : '0.75';
+      a.style.fontWeight = on ? '600' : '400';
+    });
+    syncLoginWarnings();
+  }
+  function currentPageFromHash(){
+    var h = (location.hash || '#home').replace(/^#/, '').split('?')[0];
+    if(h === 'analyzer') h = 'analyze';
+    if(h === 'account-audit') h = 'account';
+    return h || 'home';
+  }
+  function syncLoginWarnings(){
+    var logged = false;
+    try {
+      var u = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+      logged = !!(u && u.email);
+    } catch(e){}
+    var w1 = document.getElementById('loginWarnAnalyze');
+    var w2 = document.getElementById('loginWarnScripts');
+    if(w1) w1.style.display = logged ? 'none' : 'block';
+    if(w2) w2.style.display = logged ? 'none' : 'block';
+  }
+  document.querySelectorAll('a[data-page]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var p = a.getAttribute('data-page');
+      if(!p) return;
+      e.preventDefault();
+      location.hash = p;
+    });
+  });
+  window.addEventListener('hashchange', function(){ showAppPage(currentPageFromHash()); });
+  var lw = document.getElementById('loginWarnLink');
+  if(lw){
+    lw.addEventListener('click', function(e){
+      e.preventDefault();
+      var b = document.getElementById('authBtn');
+      if(b) b.click();
+    });
+  }
+  // Patch refreshAuthUI to sync warnings
+  var _refreshAuthUI = typeof refreshAuthUI === 'function' ? refreshAuthUI : null;
+  if(_refreshAuthUI){
+    refreshAuthUI = function(){ _refreshAuthUI(); syncLoginWarnings(); };
+  }
+  showAppPage(currentPageFromHash());
+  syncLoginWarnings();
+
+  /* ===== Script generator ===== */
+  async function runScriptGen(mode){
+    var topic = (document.getElementById('scriptTopic') || {}).value || '';
+    topic = String(topic).trim();
+    if(!topic){ showToast(LANG==='ru'?'Напишите тему':'Enter a topic'); return; }
+    var out = document.getElementById('scriptOut');
+    if(out) out.innerHTML = '<p style="color:var(--muted)">…</p>';
+    try {
+      var res = await fetch((typeof API_BASE!=='undefined'?API_BASE:'') + '/api/script-generate', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          mode: mode,
+          language: LANG === 'en' ? 'en' : (LANG === 'uz' ? 'uz' : 'ru'),
+          topic: topic,
+          audience: (document.getElementById('scriptAudience')||{}).value || '',
+          goal: (document.getElementById('scriptGoal')||{}).value || '',
+          format: (document.getElementById('scriptFormat')||{}).value || '',
+          duration: Number((document.getElementById('scriptDuration')||{}).value) || 20
+        })
+      });
+      var js = await res.json().catch(function(){ return {}; });
+      if(!res.ok) throw new Error(js.error_ru || js.error || ('HTTP '+res.status));
+      var r = js.result || {};
+      if(!out) return;
+      if(mode === 'ideas' && Array.isArray(r.ideas)){
+        out.innerHTML = r.ideas.map(function(idea, i){
+          return '<div class="script-card"><h4>'+(i+1)+'. '+escapeHtmlAi(idea.title||'')+'</h4>'+
+            '<p><b>'+escapeHtmlAi(idea.format||'')+'</b> · '+escapeHtmlAi(idea.goal||'')+'</p>'+
+            '<p>'+escapeHtmlAi(idea.concept||'')+'</p>'+
+            '<p><b>Start:</b> '+escapeHtmlAi(idea.opening||'')+'</p>'+
+            '<p><b>Key:</b> '+escapeHtmlAi(idea.key_moment||'')+'</p>'+
+            '<p><b>End:</b> '+escapeHtmlAi(idea.ending||'')+'</p>'+
+            '<p>'+escapeHtmlAi(idea.why_it_works||'')+' · ~'+(idea.duration_sec||'')+'s · '+escapeHtmlAi(idea.difficulty||'')+'</p></div>';
+        }).join('');
+      } else {
+        var rows = (r.script_table||[]).map(function(row){
+          return '<tr><td>'+escapeHtmlAi(row.time||'')+'</td><td>'+escapeHtmlAi(row.visual||'')+'</td><td>'+escapeHtmlAi(row.audio||'')+'</td><td>'+escapeHtmlAi(row.text_on_screen||'')+'</td></tr>';
+        }).join('');
+        out.innerHTML = '<div class="script-card"><h4>'+escapeHtmlAi(r.title||'Script')+'</h4>'+
+          '<p>'+escapeHtmlAi(r.concept||'')+'</p>'+
+          '<p>'+escapeHtmlAi(r.format||'')+' · '+escapeHtmlAi(r.tone||'')+' · ~'+(r.duration_sec||'')+'s</p>'+
+          (rows ? '<table class="script-table"><thead><tr><th>Time</th><th>Visual</th><th>Audio</th><th>Text</th></tr></thead><tbody>'+rows+'</tbody></table>' : '')+
+          '<p style="margin-top:10px"><b>Payoff:</b> '+escapeHtmlAi(r.payoff||'')+'</p>'+
+          (r.cta ? '<p><b>CTA:</b> '+escapeHtmlAi(r.cta)+'</p>' : '')+
+          ((r.production_notes||[]).length ? '<p><b>Production:</b> '+escapeHtmlAi((r.production_notes||[]).join(' · '))+'</p>' : '')+
+          '</div>';
+      }
+      showToast(LANG==='ru'?'Готово':'Done');
+    } catch(err){
+      if(out) out.innerHTML = '';
+      showToast(String(err.message||err));
+    }
+  }
+  var sib = document.getElementById('scriptIdeasBtn');
+  var sfb = document.getElementById('scriptFullBtn');
+  if(sib) sib.addEventListener('click', function(){ runScriptGen('ideas'); });
+  if(sfb) sfb.addEventListener('click', function(){ runScriptGen('script'); });
 
   /* ============ Language toggle ============ */
   function t3(en, ru, uz){
