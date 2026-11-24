@@ -121,13 +121,59 @@
   }
   .lang-toggle:hover{color:var(--ink);}
 
-  @media (max-width:860px){
-    .nav-links{display:none;}
-    nav{padding-left:18px;padding-right:18px;}
+  .nav-burger{
+    display:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,0.04);color:var(--ink);align-items:center;justify-content:center;
+    cursor:pointer;padding:0;flex-shrink:0;
+  }
+  .nav-burger span{display:block;width:18px;height:2px;background:currentColor;margin:3px auto;border-radius:2px;}
+  .mobile-drawer{
+    display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);
+  }
+  .mobile-drawer.open{display:block;}
+  .mobile-drawer-panel{
+    position:absolute;top:0;right:0;width:min(320px,88vw);height:100%;background:#0b0b10;
+    border-left:1px solid var(--line);padding:88px 20px 32px;overflow-y:auto;
+    box-shadow:-20px 0 60px rgba(0,0,0,0.45);
+  }
+  .mobile-drawer-panel a, .mobile-drawer-panel button.drawer-link{
+    display:block;width:100%;text-align:left;padding:14px 12px;margin-bottom:6px;border-radius:12px;
+    color:var(--ink);text-decoration:none;font-size:16px;font-weight:600;border:1px solid transparent;
+    background:transparent;cursor:pointer;
+  }
+  .mobile-drawer-panel a:active, .mobile-drawer-panel a:hover{
+    background:rgba(255,59,92,0.1);border-color:rgba(255,59,92,0.25);
+  }
+  .mobile-drawer-close{
+    position:absolute;top:18px;right:16px;width:40px;height:40px;border-radius:10px;
+    border:1px solid var(--line);background:transparent;color:var(--ink);font-size:20px;cursor:pointer;
+  }
+
+  @media (max-width:900px){
+    .nav-links{display:none !important;}
+    .nav-burger{display:inline-flex;}
+    nav{padding-left:14px;padding-right:14px;gap:10px;}
+    .nav-right{gap:8px;}
+    .nav-cta{display:none;} /* avoid crowding; CTA is in drawer */
+    .lang-switch{transform:scale(0.92);transform-origin:right center;}
+    .hero{padding:calc(96px + var(--safe-top)) 18px 48px !important;}
+    .hero h1{font-size:clamp(28px,9.2vw,40px) !important;line-height:1.08 !important;letter-spacing:-0.02em;}
+    .hero-sub{font-size:14.5px !important;line-height:1.55 !important;max-width:100% !important;margin-top:16px !important;}
+    .hero-actions{margin-top:22px !important;gap:10px;}
+    .hero-actions .btn-primary,.hero-actions .btn-ghost{width:100%;justify-content:center;padding:14px 18px;font-size:14px;}
+    .eyebrow{font-size:11px;flex-wrap:wrap;gap:6px;}
+    .hero-canvas-wrap{height:min(280px,70vw)!important;min-height:220px!important;max-width:280px!important;margin:24px auto 0!important;}
+    .hero-grid{display:block !important;}
+    h2{font-size:clamp(22px,6.5vw,32px)!important;line-height:1.15!important;}
+    .wrap{padding-left:16px!important;padding-right:16px!important;}
+    .login-warn{font-size:12.5px;}
+    #authBtn{padding:8px 12px!important;font-size:12px!important;}
   }
   @media (max-width:480px){
-    .nav-cta{padding:10px 14px;font-size:12px;}
-    .logo-img{width:30px;height:30px;}
+    .logo span{font-size:15px;}
+    .logo-img{width:28px;height:28px;}
+    .hero h1{font-size:clamp(26px,8.8vw,34px)!important;}
+    .lang-btn{padding:4px 6px!important;font-size:11px!important;}
   }
 
   .magnetic{display:inline-block;will-change:transform;}
@@ -753,8 +799,22 @@
     <a href="#admin-panel" id="adminNavLink" class="btn-ghost magnetic" style="display:none;padding:8px 14px;font-size:13px;border:1px solid rgba(255,59,92,0.5);border-radius:999px;color:var(--accent);text-decoration:none;">Admin</a>
     <button type="button" class="btn-ghost magnetic" id="authBtn" style="padding:8px 14px;font-size:13px;border:1px solid var(--line);border-radius:999px;" data-i18n="nav_account">Log in</button>
     <a href="#analyze" class="nav-cta magnetic" data-page="analyze" data-i18n="nav_try">Try it free</a>
+    <button type="button" class="nav-burger" id="navBurger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+<div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+  <div class="mobile-drawer-panel">
+    <button type="button" class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Close">×</button>
+    <a href="#home" data-page="home" data-i18n="nav_home">Home</a>
+    <a href="#analyze" data-page="analyze" data-i18n="nav_analyze">Analyze</a>
+    <a href="#account" data-page="account" data-i18n="nav_account_audit">IG Account</a>
+    <a href="#scripts" data-page="scripts" data-i18n="nav_scripts">Scripts</a>
+    <a href="#pricing" data-page="pricing" data-i18n="nav_pricing">Pricing</a>
+    <a href="#analyze" data-page="analyze" data-i18n="nav_try" style="margin-top:12px;background:var(--accent);color:#fff;text-align:center;">Try it free</a>
+  </div>
+</div>
 
 <header class="hero">
   <!-- Side phones with scrolling reels -->
@@ -4212,6 +4272,28 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
     });
   })();
 
+
+
+  (function mobileNav(){
+    var burger = document.getElementById('navBurger');
+    var drawer = document.getElementById('mobileDrawer');
+    var closeBtn = document.getElementById('mobileDrawerClose');
+    function open(){ if(!drawer) return; drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+    function close(){ if(!drawer) return; drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+    if(burger) burger.addEventListener('click', function(e){ e.preventDefault(); open(); });
+    if(closeBtn) closeBtn.addEventListener('click', function(e){ e.preventDefault(); close(); });
+    if(drawer){
+      drawer.addEventListener('click', function(e){ if(e.target === drawer) close(); });
+      drawer.querySelectorAll('a[data-page]').forEach(function(a){
+        a.addEventListener('click', function(){
+          var p = a.getAttribute('data-page');
+          if(p){ location.hash = p; }
+          close();
+        });
+      });
+    }
+    window.addEventListener('hashchange', close);
+  })();
 
   /* ===== Multi-page router ===== */
   function showAppPage(name){
