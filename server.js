@@ -1502,7 +1502,65 @@ Rules:
 
 
 
-// ===== Script generator (ideas + full scripts) =====
+// ===== Script generator (Creative Engine v2.0) =====
+function extractIdeaCount(text, fallback = 6) {
+  const t = String(text || '');
+  const patterns = [
+    /(\d+)\s*(?:идей|идеи|идея|ideas?|variants?|вариантов|варианта|вариант)/i,
+    /(?:придумай|сгенерируй|дай|нужно|need|give me|generate)\s+(\d+)/i,
+    /^(\d+)\s*$/
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n >= 1 && n <= 12) return n;
+    }
+  }
+  return Math.min(12, Math.max(1, Number(fallback) || 6));
+}
+
+function isWeakIdea(idea) {
+  if (!idea || typeof idea !== 'object') return true;
+  const blob = [
+    idea.title, idea.hook, idea.concreteAction, idea.progression, idea.payoff, idea.production
+  ].map((x) => String(x || '').toLowerCase()).join(' ');
+  if (blob.length < 80) return true;
+  const banned = [
+    'показать как', 'рассказать о', 'вирусный ролик', 'динамичный монтаж',
+    'герой радуется', 'подписывается', 'show how', 'tell about advantages',
+    'become a star', 'стать звездой'
+  ];
+  if (banned.some((b) => blob.includes(b)) && blob.length < 220) return true;
+  if (!String(idea.hook || '').trim() || !String(idea.payoff || '').trim()) return true;
+  if (!String(idea.concreteAction || idea.progression || '').trim()) return true;
+  // Fake product claims
+  if (/за\s*20\s*секунд|тест на креатив|гарант\w*\s*просм|viral guarantee/i.test(blob)) return true;
+  return false;
+}
+
+function normalizeIdeasPayload(parsed, n) {
+  let ideas = Array.isArray(parsed?.ideas) ? parsed.ideas : (Array.isArray(parsed?.items) ? parsed.items : []);
+  // Map legacy fields
+  ideas = ideas.map((idea, i) => ({
+    id: idea.id || i + 1,
+    title: idea.title || idea.name || ('Idea ' + (i + 1)),
+    format: idea.format || idea.genre || 'OTHER',
+    goal: idea.goal || '',
+    durationSec: Number(idea.durationSec || idea.duration_sec || idea.duration) || 20,
+    hook: idea.hook || idea.opening || '',
+    concreteAction: idea.concreteAction || idea.concrete_action || idea.key_moment || '',
+    progression: idea.progression || idea.concept || idea.development || '',
+    payoff: idea.payoff || idea.ending || idea.finale || '',
+    production: idea.production || idea.production_notes || idea.difficulty || '',
+    audienceReason: idea.audienceReason || idea.why_it_works || idea.why || '',
+    dialogue: idea.dialogue || '',
+    onScreenText: idea.onScreenText || idea.on_screen_text || '',
+    cta: idea.cta || 'нет'
+  }));
+  return ideas;
+}
+
 app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), async (req, res) => {
   try {
     if (!hasKey()) {
@@ -1513,7 +1571,6 @@ app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), as
     if (!user && !freeMode) {
       return res.status(401).json({ error: 'Login required', error_ru: 'Войдите в аккаунт', code: 'AUTH' });
     }
-    // Prefer Pro/Studio when payments on; admin email always free
     const plan = (user && user.plan) || 'free';
     if (!freeMode && !isAdminUser(user) && plan !== 'studio' && plan !== 'pro') {
       return res.status(403).json({
@@ -1522,10 +1579,11 @@ app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), as
         code: 'PLAN'
       });
     }
+
     const body = req.body || {};
     const mode = String(body.mode || 'ideas') === 'script' ? 'script' : 'ideas';
     const language = body.language === 'en' ? 'en' : (body.language === 'uz' ? 'uz' : 'ru');
-    const topic = String(body.topic || '').trim().slice(0, 500);
+    const topic = String(body.topic || '').trim().slice(0, 800);
     if (!topic) {
       return res.status(400).json({ error: 'topic required', error_ru: 'Укажите тему или задачу' });
     }
@@ -1535,50 +1593,111 @@ app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), as
     const tone = String(body.tone || '').trim().slice(0, 80);
     const duration = Math.min(90, Math.max(5, Number(body.duration) || 20));
     const resources = String(body.resources || '').trim().slice(0, 300);
-    const idea = String(body.idea || '').trim().slice(0, 1000);
-    const count = Math.min(8, Math.max(3, Number(body.count) || 5));
+    const idea = String(body.idea || '').trim().slice(0, 2000);
+    const count = extractIdeaCount(topic, body.count || 6);
     const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
 
-    const userPrompt = [
-      `MODE: ${mode}`,
-      `OUTPUT LANGUAGE: ${langName} (all string values in this language)`,
-      `TOPIC / BRIEF: ${topic}`,
-      audience ? `AUDIENCE: ${audience}` : '',
-      goal ? `GOAL: ${goal}` : '',
-      format ? `PREFERRED FORMAT: ${format}` : 'PREFERRED FORMAT: choose best for the goal',
-      tone ? `TONE: ${tone}` : '',
-      `TARGET DURATION: ~${duration}s`,
-      resources ? `PRODUCTION RESOURCES: ${resources}` : 'PRODUCTION RESOURCES: phone, 1 person if possible',
-      idea ? `BASE IDEA TO DEVELOP: ${idea}` : '',
-      mode === 'ideas' ? `Generate ${count} distinct ideas.` : 'Write one full shoot-ready script.',
-      'JSON only.'
-    ].filter(Boolean).join('\n');
+    const productFacts = `CONFIRMED VIRALCLIP FEATURES ONLY:
+1) AI analysis of uploaded short video (frame tips, scores) — real time depends on video, NEVER claim fixed "20 seconds".
+2) Instagram account audit.
+3) Idea generation and full scripts (this tool).
+FORBIDDEN: creativity quiz, guaranteed views, invented UI buttons, fake case studies, fake analysis numbers.`;
 
-    const completion = await client().chat.completions.create({
-      model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
-      temperature: 0.7,
-      max_tokens: mode === 'ideas' ? 2200 : 2800,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SCRIPTWRITER_PROMPT },
-        { role: 'user', content: userPrompt }
-      ]
-    });
-    const raw = completion.choices?.[0]?.message?.content || '{}';
-    let parsed;
-    try { parsed = JSON.parse(raw); }
-    catch {
-      const m = String(raw).match(/\{[\s\S]*\}/);
-      parsed = m ? JSON.parse(m[0]) : { error: 'bad_json', raw: String(raw).slice(0, 500) };
+    async function callModel(extraNote) {
+      const userPrompt = [
+        `MODE: ${mode === 'script' ? 'SCRIPT' : 'IDEAS'}`,
+        `OUTPUT LANGUAGE: ${langName}`,
+        mode === 'ideas' ? `N = ${count}. Return EXACTLY ${count} ideas in JSON array "ideas".` : 'Return ONE full script JSON.',
+        `TOPIC / BRIEF: ${topic}`,
+        audience ? `AUDIENCE: ${audience}` : '',
+        goal ? `GOAL: ${goal}` : '',
+        format ? `PREFERRED FORMAT: ${format}` : 'PREFERRED FORMAT: Auto — pick best diverse mechanics',
+        tone ? `TONE: ${tone}` : '',
+        `TARGET DURATION: ~${duration}s (adjust per genre; memes can be shorter)`,
+        resources ? `PRODUCTION: ${resources}` : 'PRODUCTION: phone, 1 actor preferred, 1 location',
+        idea ? `BASE IDEA TO DEVELOP (keep genre & twist):\n${idea}` : '',
+        productFacts,
+        extraNote || '',
+        'JSON only. No markdown.'
+      ].filter(Boolean).join('\n');
+
+      const completion = await client().chat.completions.create({
+        model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+        temperature: mode === 'ideas' ? 0.85 : 0.7,
+        max_tokens: mode === 'ideas' ? 4000 : 3200,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SCRIPTWRITER_PROMPT },
+          { role: 'user', content: userPrompt }
+        ]
+      });
+      const raw = completion.choices?.[0]?.message?.content || '{}';
+      try { return JSON.parse(raw); }
+      catch {
+        const m = String(raw).match(/\{[\s\S]*\}/);
+        return m ? JSON.parse(m[0]) : { error: 'bad_json' };
+      }
     }
-    res.json({ ok: true, mode, language, result: parsed, engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini' });
+
+    let parsed = await callModel('');
+    if (mode === 'ideas') {
+      let ideas = normalizeIdeasPayload(parsed, count);
+      // Retry once if count wrong or too many weak
+      const weak = ideas.filter(isWeakIdea).length;
+      if (ideas.length !== count || weak > Math.ceil(count / 2)) {
+        parsed = await callModel(
+          `CORRECTION: Previous output invalid. Need EXACTLY ${count} STRONG concrete ideas. ` +
+          `Each must have real hook quote/action, progression events, concrete payoff, production notes. ` +
+          `No pseudo-ideas. No invented ViralClip features. Different mechanics across the set.`
+        );
+        ideas = normalizeIdeasPayload(parsed, count);
+      }
+      // Trim/pad lightly: if more than count, keep first count strong
+      ideas = ideas.filter((x) => !isWeakIdea(x));
+      if (ideas.length > count) ideas = ideas.slice(0, count);
+      // If still short after filter, keep original normalized (better than empty)
+      if (ideas.length < count) {
+        const all = normalizeIdeasPayload(parsed, count);
+        for (const x of all) {
+          if (ideas.length >= count) break;
+          if (!ideas.find((y) => y.title === x.title)) ideas.push(x);
+        }
+      }
+      ideas = ideas.slice(0, count).map((x, i) => ({ ...x, id: i + 1 }));
+      return res.json({
+        ok: true,
+        mode: 'ideas',
+        language,
+        requestedCount: count,
+        result: { mode: 'ideas', count: ideas.length, ideas },
+        engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini'
+      });
+    }
+
+    // SCRIPT mode — normalize scenes
+    if (!parsed.scenes && Array.isArray(parsed.script_table)) {
+      parsed.scenes = parsed.script_table.map((row, i) => ({
+        startSec: i * 3,
+        endSec: (i + 1) * 3,
+        shot: row.visual || row.shot || '',
+        dialogue: row.audio || row.dialogue || '',
+        onScreenText: row.text_on_screen || row.onScreenText || 'нет',
+        edit: row.edit || ''
+      }));
+    }
+    res.json({
+      ok: true,
+      mode: 'script',
+      language,
+      result: parsed,
+      engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini'
+    });
   } catch (err) {
     console.error('[script-generate]', err.message);
     res.status(err?.status || 500).json({ error: err.message || 'script failed' });
   }
 });
 
-// ===== Admin panel API =====
 app.get('/api/admin/users', (req, res) => {
   if (!requireAdmin(req, res)) return;
   const users = readJson('users.json', []);

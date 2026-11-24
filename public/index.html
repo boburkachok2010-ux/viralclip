@@ -1154,6 +1154,8 @@
     </select>
     <label data-i18n="scripts_duration">Длительность (сек)</label>
     <input id="scriptDuration" type="number" min="8" max="90" value="20" />
+    <label>Число идей (если не указано в теме)</label>
+    <input id="scriptCount" type="number" min="3" max="10" value="6" />
     <div class="script-actions">
       <button type="button" class="btn-primary magnetic" id="scriptIdeasBtn" data-i18n="scripts_btn_ideas">Сгенерировать идеи</button>
       <button type="button" class="btn-ghost magnetic" id="scriptFullBtn" data-i18n="scripts_btn_full">Полный сценарий</button>
@@ -4397,34 +4399,71 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
           audience: (document.getElementById('scriptAudience')||{}).value || '',
           goal: (document.getElementById('scriptGoal')||{}).value || '',
           format: (document.getElementById('scriptFormat')||{}).value || '',
-          duration: Number((document.getElementById('scriptDuration')||{}).value) || 20
+          duration: Number((document.getElementById('scriptDuration')||{}).value) || 20,
+          count: Number((document.getElementById('scriptCount')||{}).value) || 6
         })
       });
       var js = await res.json().catch(function(){ return {}; });
       if(!res.ok) throw new Error(js.error_ru || js.error || ('HTTP '+res.status));
       var r = js.result || {};
       if(!out) return;
+      window.__lastIdeas = Array.isArray(r.ideas) ? r.ideas : [];
       if(mode === 'ideas' && Array.isArray(r.ideas)){
         out.innerHTML = r.ideas.map(function(idea, i){
-          return '<div class="script-card"><h4>'+(i+1)+'. '+escapeHtmlAi(idea.title||'')+'</h4>'+
-            '<p><b>'+escapeHtmlAi(idea.format||'')+'</b> · '+escapeHtmlAi(idea.goal||'')+'</p>'+
-            '<p>'+escapeHtmlAi(idea.concept||'')+'</p>'+
-            '<p><b>Start:</b> '+escapeHtmlAi(idea.opening||'')+'</p>'+
-            '<p><b>Key:</b> '+escapeHtmlAi(idea.key_moment||'')+'</p>'+
-            '<p><b>End:</b> '+escapeHtmlAi(idea.ending||'')+'</p>'+
-            '<p>'+escapeHtmlAi(idea.why_it_works||'')+' · ~'+(idea.duration_sec||'')+'s · '+escapeHtmlAi(idea.difficulty||'')+'</p></div>';
+          var dur = idea.durationSec || idea.duration_sec || '';
+          return '<div class="script-card" data-idea-idx="'+i+'">'+
+            '<h4>'+(i+1)+'. '+escapeHtmlAi(idea.title||'')+'</h4>'+
+            '<p><b>'+escapeHtmlAi(idea.format||'')+'</b>'+(idea.goal?(' · '+escapeHtmlAi(idea.goal)):'')+(dur?(' · ~'+dur+'с'):'')+'</p>'+
+            '<p><b>'+(LANG==='en'?'Hook':'Начало')+':</b> '+escapeHtmlAi(idea.hook||idea.opening||'')+'</p>'+
+            '<p><b>'+(LANG==='en'?'Action':'Что происходит')+':</b> '+escapeHtmlAi(idea.concreteAction||idea.key_moment||'')+'</p>'+
+            '<p><b>'+(LANG==='en'?'Story':'Развитие')+':</b> '+escapeHtmlAi(idea.progression||idea.concept||'')+'</p>'+
+            '<p><b>'+(LANG==='en'?'Payoff':'Финал')+':</b> '+escapeHtmlAi(idea.payoff||idea.ending||'')+'</p>'+
+            '<p><b>'+(LANG==='en'?'Shoot':'Что снять')+':</b> '+escapeHtmlAi(idea.production||'')+'</p>'+
+            '<p>'+escapeHtmlAi(idea.audienceReason||idea.why_it_works||'')+'</p>'+
+            (idea.dialogue ? '<p><b>'+(LANG==='en'?'Lines':'Реплики')+':</b> '+escapeHtmlAi(idea.dialogue)+'</p>' : '')+
+            (idea.cta && idea.cta !== 'нет' && idea.cta.toLowerCase() !== 'no' ? '<p><b>CTA:</b> '+escapeHtmlAi(idea.cta)+'</p>' : '')+
+            '<div class="script-actions" style="margin-top:12px">'+
+            '<button type="button" class="btn-primary magnetic develop-idea-btn" data-idx="'+i+'">'+(LANG==='ru'?'Разработать сценарий':(LANG==='uz'?"Stsenariy yozish":'Develop script'))+'</button>'+
+            '</div></div>';
         }).join('');
+        out.querySelectorAll('.develop-idea-btn').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var idx = Number(btn.getAttribute('data-idx'));
+            var idea = (window.__lastIdeas || [])[idx];
+            if(!idea) return;
+            var pack = [
+              idea.title || '',
+              'Format: ' + (idea.format || ''),
+              'Hook: ' + (idea.hook || ''),
+              'Action: ' + (idea.concreteAction || ''),
+              'Progression: ' + (idea.progression || ''),
+              'Payoff: ' + (idea.payoff || ''),
+              'Production: ' + (idea.production || ''),
+              idea.dialogue ? ('Dialogue: ' + idea.dialogue) : ''
+            ].filter(Boolean).join('\n');
+            var topicEl = document.getElementById('scriptTopic');
+            if(topicEl) topicEl.value = (topicEl.value ? topicEl.value + '\n\n' : '') + 'Разработай полный сценарий этой идеи:\n' + pack;
+            runScriptGen('script');
+            try { out.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
+          });
+        });
       } else {
-        var rows = (r.script_table||[]).map(function(row){
-          return '<tr><td>'+escapeHtmlAi(row.time||'')+'</td><td>'+escapeHtmlAi(row.visual||'')+'</td><td>'+escapeHtmlAi(row.audio||'')+'</td><td>'+escapeHtmlAi(row.text_on_screen||'')+'</td></tr>';
+        var scenes = r.scenes || r.script_table || [];
+        var rows = scenes.map(function(row){
+          var t = row.time || ((row.startSec!=null?row.startSec:'') + '–' + (row.endSec!=null?row.endSec:''));
+          var vis = row.shot || row.visual || '';
+          var aud = row.dialogue || row.audio || '';
+          var txt = row.onScreenText || row.text_on_screen || '';
+          var ed = row.edit ? (' / ' + row.edit) : '';
+          return '<tr><td>'+escapeHtmlAi(String(t))+'</td><td>'+escapeHtmlAi(vis+ed)+'</td><td>'+escapeHtmlAi(aud)+'</td><td>'+escapeHtmlAi(txt)+'</td></tr>';
         }).join('');
         out.innerHTML = '<div class="script-card"><h4>'+escapeHtmlAi(r.title||'Script')+'</h4>'+
           '<p>'+escapeHtmlAi(r.concept||'')+'</p>'+
-          '<p>'+escapeHtmlAi(r.format||'')+' · '+escapeHtmlAi(r.tone||'')+' · ~'+(r.duration_sec||'')+'s</p>'+
-          (rows ? '<table class="script-table"><thead><tr><th>Time</th><th>Visual</th><th>Audio</th><th>Text</th></tr></thead><tbody>'+rows+'</tbody></table>' : '')+
+          '<p>'+escapeHtmlAi(r.format||'')+(r.goal?(' · '+escapeHtmlAi(r.goal)):'')+' · ~'+(r.durationSec||r.duration_sec||'')+'s</p>'+
+          (r.resources ? '<p><b>'+(LANG==='en'?'Resources':'Ресурсы')+':</b> '+escapeHtmlAi(r.resources)+'</p>' : '')+
+          (rows ? '<table class="script-table"><thead><tr><th>'+(LANG==='en'?'Time':'Время')+'</th><th>'+(LANG==='en'?'Shot':'Кадр')+'</th><th>'+(LANG==='en'?'Audio':'Звук')+'</th><th>'+(LANG==='en'?'Text':'Текст')+'</th></tr></thead><tbody>'+rows+'</tbody></table>' : '')+
           '<p style="margin-top:10px"><b>Payoff:</b> '+escapeHtmlAi(r.payoff||'')+'</p>'+
-          (r.cta ? '<p><b>CTA:</b> '+escapeHtmlAi(r.cta)+'</p>' : '')+
-          ((r.production_notes||[]).length ? '<p><b>Production:</b> '+escapeHtmlAi((r.production_notes||[]).join(' · '))+'</p>' : '')+
+          ((r.notes||r.production_notes||[]).length ? '<p><b>Notes:</b> '+escapeHtmlAi((r.notes||r.production_notes||[]).join(' · '))+'</p>' : '')+
           '</div>';
       }
       showToast(LANG==='ru'?'Готово':'Done');
