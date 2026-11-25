@@ -4413,7 +4413,7 @@ function runResults(frames, scores, motion, audio, transcript, aiPack){
           var dur = idea.durationSec || idea.duration_sec || '';
           return '<div class="script-card" data-idea-idx="'+i+'">'+
             '<h4>'+(i+1)+'. '+escapeHtmlAi(idea.title||'')+'</h4>'+
-            '<p><b>'+escapeHtmlAi(idea.format||'')+'</b>'+(idea.goal?(' · '+escapeHtmlAi(idea.goal)):'')+(dur?(' · ~'+dur+'с'):'')+'</p>'+
+            '<p><b>'+escapeHtmlAi(idea.format||'')+'</b>'+(idea.mechanic?(' · '+escapeHtmlAi(idea.mechanic)):'')+(idea.goal?(' · '+escapeHtmlAi(idea.goal)):'')+(dur?(' · ~'+dur+'с'):'')+'</p>'+
             '<p><b>'+(LANG==='en'?'Hook':'Начало')+':</b> '+escapeHtmlAi(idea.hook||idea.opening||'')+'</p>'+
             '<p><b>'+(LANG==='en'?'Action':'Что происходит')+':</b> '+escapeHtmlAi(idea.concreteAction||idea.key_moment||'')+'</p>'+
             '<p><b>'+(LANG==='en'?'Story':'Развитие')+':</b> '+escapeHtmlAi(idea.progression||idea.concept||'')+'</p>'+

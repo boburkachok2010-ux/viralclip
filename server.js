@@ -1506,9 +1506,8 @@ Rules:
 function extractIdeaCount(text, fallback = 6) {
   const t = String(text || '');
   const patterns = [
-    /(\d+)\s*(?:идей|идеи|идея|ideas?|variants?|вариантов|варианта|вариант)/i,
-    /(?:придумай|сгенерируй|дай|нужно|need|give me|generate)\s+(\d+)/i,
-    /^(\d+)\s*$/
+    /(\d+)\s*(?:идей|идеи|идея|ideas?|variants?|вариантов|варианта|вариант|мемов|мема|meme)/i,
+    /(?:придумай|сгенерируй|дай|нужно|need|give me|generate)\s+(\d+)/i
   ];
   for (const re of patterns) {
     const m = t.match(re);
@@ -1520,45 +1519,106 @@ function extractIdeaCount(text, fallback = 6) {
   return Math.min(12, Math.max(1, Number(fallback) || 6));
 }
 
+const ABSTRACT_PHRASES = [
+  'показать как', 'показываются', 'демонстрируются преимущества', 'интересные приёмы',
+  'забавная ситуация', 'смешная ситуация', 'полезные советы', 'неожиданный поворот',
+  'герой радуется', 'пользователь радуется', 'рассказывает смешную', 'вирусный ролик',
+  'динамичный монтаж', 'преимущества приложения', 'ошибки пользователей',
+  'show how', 'interesting techniques', 'funny situation', 'useful tips',
+  'unexpected twist', 'user is happy', 'becomes a star', 'стать звездой'
+];
+
+function ideaBlob(idea) {
+  return [
+    idea.title, idea.hook, idea.concreteAction, idea.progression,
+    idea.payoff, idea.production, idea.dialogue, idea.onScreenText, idea.mechanic
+  ].map((x) => String(x || '')).join(' ').toLowerCase();
+}
+
 function isWeakIdea(idea) {
   if (!idea || typeof idea !== 'object') return true;
-  const blob = [
-    idea.title, idea.hook, idea.concreteAction, idea.progression, idea.payoff, idea.production
-  ].map((x) => String(x || '').toLowerCase()).join(' ');
-  if (blob.length < 80) return true;
-  const banned = [
-    'показать как', 'рассказать о', 'вирусный ролик', 'динамичный монтаж',
-    'герой радуется', 'подписывается', 'show how', 'tell about advantages',
-    'become a star', 'стать звездой'
-  ];
-  if (banned.some((b) => blob.includes(b)) && blob.length < 220) return true;
-  if (!String(idea.hook || '').trim() || !String(idea.payoff || '').trim()) return true;
-  if (!String(idea.concreteAction || idea.progression || '').trim()) return true;
-  // Fake product claims
-  if (/за\s*20\s*секунд|тест на креатив|гарант\w*\s*просм|viral guarantee/i.test(blob)) return true;
+  const blob = ideaBlob(idea);
+  if (blob.length < 100) return true;
+  const hook = String(idea.hook || '').trim();
+  const payoff = String(idea.payoff || '').trim();
+  const action = String(idea.concreteAction || idea.progression || '').trim();
+  if (hook.length < 12 || payoff.length < 12 || action.length < 20) return true;
+  // Must have at least one concrete signal: quotes, screen text, or specific UI/object words
+  const hasQuote = /[«"„].{3,}[»"“]/.test(blob) || /'[^']{4,}'/.test(blob);
+  const hasScreen = /экран|надпись|текст:|on.?screen|ui|интерфейс|0:\d{2}/i.test(blob);
+  const hasPhysical = /берёт|кидает|открывает|закрывает|режет|монтирует|смотрит в|поворачивается|телефон|камеру/i.test(blob);
+  if (!hasQuote && !hasScreen && !hasPhysical) return true;
+  let abstractHits = 0;
+  for (const p of ABSTRACT_PHRASES) {
+    if (blob.includes(p)) abstractHits++;
+  }
+  if (abstractHits >= 2) return true;
+  if (/за\s*20\s*секунд|тест на креатив|гарант\w*\s*просм|viral guarantee|100%\s*viral/i.test(blob)) return true;
+  // Generic title patterns
+  if (/^(секреты|как сделать|идеи для|ошибки в)/i.test(String(idea.title || ''))) {
+    if (blob.length < 180) return true;
+  }
   return false;
 }
 
-function normalizeIdeasPayload(parsed, n) {
-  let ideas = Array.isArray(parsed?.ideas) ? parsed.ideas : (Array.isArray(parsed?.items) ? parsed.items : []);
-  // Map legacy fields
-  ideas = ideas.map((idea, i) => ({
+function mechanicKey(idea) {
+  const m = String(idea.mechanic || idea.format || '').toLowerCase();
+  const blob = ideaBlob(idea);
+  if (m) return m.slice(0, 40);
+  if (/друг|сказал|ожидан/i.test(blob)) return 'expectation';
+  if (/мем|подпис/i.test(blob)) return 'meme';
+  if (/урок|ошибк|совет/i.test(blob)) return 'edu';
+  if (/pov|от первого/i.test(blob)) return 'pov';
+  return blob.slice(0, 48);
+}
+
+function normalizeIdeasPayload(parsed) {
+  let ideas = Array.isArray(parsed?.ideas)
+    ? parsed.ideas
+    : (Array.isArray(parsed?.items) ? parsed.items : (Array.isArray(parsed?.candidates) ? parsed.candidates : []));
+  return ideas.map((idea, i) => ({
     id: idea.id || i + 1,
-    title: idea.title || idea.name || ('Idea ' + (i + 1)),
-    format: idea.format || idea.genre || 'OTHER',
-    goal: idea.goal || '',
+    title: String(idea.title || idea.name || ('Idea ' + (i + 1))).slice(0, 120),
+    format: String(idea.format || idea.genre || 'OTHER').slice(0, 40),
+    mechanic: String(idea.mechanic || '').slice(0, 80),
+    goal: String(idea.goal || '').slice(0, 200),
     durationSec: Number(idea.durationSec || idea.duration_sec || idea.duration) || 20,
-    hook: idea.hook || idea.opening || '',
-    concreteAction: idea.concreteAction || idea.concrete_action || idea.key_moment || '',
-    progression: idea.progression || idea.concept || idea.development || '',
-    payoff: idea.payoff || idea.ending || idea.finale || '',
-    production: idea.production || idea.production_notes || idea.difficulty || '',
-    audienceReason: idea.audienceReason || idea.why_it_works || idea.why || '',
-    dialogue: idea.dialogue || '',
-    onScreenText: idea.onScreenText || idea.on_screen_text || '',
-    cta: idea.cta || 'нет'
+    hook: String(idea.hook || idea.opening || '').slice(0, 400),
+    concreteAction: String(idea.concreteAction || idea.concrete_action || idea.key_moment || '').slice(0, 500),
+    progression: String(idea.progression || idea.concept || idea.development || '').slice(0, 800),
+    payoff: String(idea.payoff || idea.ending || idea.finale || '').slice(0, 400),
+    production: String(idea.production || idea.production_notes || '').slice(0, 300),
+    audienceReason: String(idea.audienceReason || idea.why_it_works || idea.why || '').slice(0, 300),
+    dialogue: String(idea.dialogue || '').slice(0, 400),
+    onScreenText: String(idea.onScreenText || idea.on_screen_text || '').slice(0, 200),
+    cta: String(idea.cta || 'нет').slice(0, 120)
   }));
-  return ideas;
+}
+
+function selectDiverse(ideas, count) {
+  const strong = [];
+  const weak = [];
+  const used = new Set();
+  for (const idea of ideas) {
+    const key = mechanicKey(idea);
+    if (isWeakIdea(idea)) {
+      weak.push(idea);
+      continue;
+    }
+    if (used.has(key) && strong.length + weak.length > count) {
+      // allow limited duplicates only if short on ideas
+      weak.push(idea);
+      continue;
+    }
+    used.add(key);
+    strong.push(idea);
+  }
+  const out = strong.slice();
+  for (const idea of weak) {
+    if (out.length >= count) break;
+    if (!out.find((x) => x.title === idea.title)) out.push(idea);
+  }
+  return out.slice(0, count);
 }
 
 app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), async (req, res) => {
@@ -1593,90 +1653,138 @@ app.post('/api/script-generate', rateLimit('script_gen', 20, 60 * 60 * 1000), as
     const tone = String(body.tone || '').trim().slice(0, 80);
     const duration = Math.min(90, Math.max(5, Number(body.duration) || 20));
     const resources = String(body.resources || '').trim().slice(0, 300);
-    const idea = String(body.idea || '').trim().slice(0, 2000);
+    const ideaSeed = String(body.idea || '').trim().slice(0, 2000);
     const count = extractIdeaCount(topic, body.count || 6);
     const langName = language === 'en' ? 'English' : (language === 'uz' ? 'Uzbek' : 'Russian');
+    const model = process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini';
 
     const productFacts = `CONFIRMED VIRALCLIP FEATURES ONLY:
-1) AI analysis of uploaded short video (frame tips, scores) — real time depends on video, NEVER claim fixed "20 seconds".
+1) Analyze uploaded short video → timed tips (never claim fixed 20s).
 2) Instagram account audit.
-3) Idea generation and full scripts (this tool).
-FORBIDDEN: creativity quiz, guaranteed views, invented UI buttons, fake case studies, fake analysis numbers.`;
+3) Generate ideas & full scripts.
+FORBIDDEN: creativity test, guaranteed views, fake metrics, invented buttons.`;
 
-    async function callModel(extraNote) {
-      const userPrompt = [
-        `MODE: ${mode === 'script' ? 'SCRIPT' : 'IDEAS'}`,
-        `OUTPUT LANGUAGE: ${langName}`,
-        mode === 'ideas' ? `N = ${count}. Return EXACTLY ${count} ideas in JSON array "ideas".` : 'Return ONE full script JSON.',
-        `TOPIC / BRIEF: ${topic}`,
-        audience ? `AUDIENCE: ${audience}` : '',
-        goal ? `GOAL: ${goal}` : '',
-        format ? `PREFERRED FORMAT: ${format}` : 'PREFERRED FORMAT: Auto — pick best diverse mechanics',
-        tone ? `TONE: ${tone}` : '',
-        `TARGET DURATION: ~${duration}s (adjust per genre; memes can be shorter)`,
-        resources ? `PRODUCTION: ${resources}` : 'PRODUCTION: phone, 1 actor preferred, 1 location',
-        idea ? `BASE IDEA TO DEVELOP (keep genre & twist):\n${idea}` : '',
-        productFacts,
-        extraNote || '',
-        'JSON only. No markdown.'
-      ].filter(Boolean).join('\n');
+    const baseContext = [
+      `OUTPUT LANGUAGE: ${langName}`,
+      `TOPIC / BRIEF: ${topic}`,
+      audience ? `AUDIENCE: ${audience}` : '',
+      goal ? `GOAL: ${goal}` : '',
+      format ? `PREFERRED FORMAT: ${format}` : 'PREFERRED FORMAT: Auto — pick fitting diverse mechanics',
+      tone ? `TONE: ${tone}` : '',
+      `TARGET DURATION: ~${duration}s (memes may be shorter)`,
+      resources ? `PRODUCTION: ${resources}` : 'PRODUCTION: phone, 1–2 people, 1 room',
+      ideaSeed ? `BASE IDEA TO DEVELOP (keep genre & twist):\n${ideaSeed}` : '',
+      productFacts
+    ].filter(Boolean).join('\n');
 
+    async function chatJson(system, userContent, temperature, maxTokens) {
       const completion = await client().chat.completions.create({
-        model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
-        temperature: mode === 'ideas' ? 0.85 : 0.7,
-        max_tokens: mode === 'ideas' ? 4000 : 3200,
+        model,
+        temperature,
+        max_tokens: maxTokens,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: SCRIPTWRITER_PROMPT },
-          { role: 'user', content: userPrompt }
+          { role: 'system', content: system },
+          { role: 'user', content: userContent }
         ]
       });
       const raw = completion.choices?.[0]?.message?.content || '{}';
       try { return JSON.parse(raw); }
       catch {
         const m = String(raw).match(/\{[\s\S]*\}/);
-        return m ? JSON.parse(m[0]) : { error: 'bad_json' };
+        return m ? JSON.parse(m[0]) : {};
       }
     }
 
-    let parsed = await callModel('');
     if (mode === 'ideas') {
-      let ideas = normalizeIdeasPayload(parsed, count);
-      // Retry once if count wrong or too many weak
-      const weak = ideas.filter(isWeakIdea).length;
-      if (ideas.length !== count || weak > Math.ceil(count / 2)) {
-        parsed = await callModel(
-          `CORRECTION: Previous output invalid. Need EXACTLY ${count} STRONG concrete ideas. ` +
-          `Each must have real hook quote/action, progression events, concrete payoff, production notes. ` +
-          `No pseudo-ideas. No invented ViralClip features. Different mechanics across the set.`
+      const candidateN = Math.min(12, Math.max(count + 3, Math.ceil(count * 1.7)));
+
+      // STAGE A — over-generate concrete candidates
+      const stageA = await chatJson(
+        SCRIPTWRITER_PROMPT,
+        [
+          'MODE: IDEAS — STAGE A CANDIDATES',
+          `Generate EXACTLY ${candidateN} concrete filmable concepts (not abstract).`,
+          'Each idea MUST include: quoted dialogue OR exact on-screen text OR precise physical action.',
+          'Different mechanic for each. No repeated open-app-get-result-smile plots.',
+          'Ban empty phrases: funny situation, useful tips, unexpected twist, show advantages.',
+          baseContext,
+          'Return JSON: { "candidates": [ {same fields as ideas} ] } or { "ideas": [...] }',
+          'JSON only.'
+        ].join('\n'),
+        0.9,
+        4500
+      );
+
+      let candidates = normalizeIdeasPayload(stageA);
+      console.log('[script-generate] stageA', candidates.length, 'weak', candidates.filter(isWeakIdea).length);
+
+      // STAGE B — select + rewrite weak slots
+      let selected = selectDiverse(candidates, count);
+      const need = count - selected.filter((x) => !isWeakIdea(x)).length;
+
+      if (selected.length < count || need > 0 || selected.filter(isWeakIdea).length > 0) {
+        const stageB = await chatJson(
+          SCRIPTWRITER_PROMPT + '\n\nYou are now the QUALITY EDITOR. Rewrite weak ideas into CONCRETE filmable concepts. Keep strong ones. Output EXACTLY N final ideas.',
+          [
+            'MODE: IDEAS — STAGE B FINAL SELECTION',
+            `Return EXACTLY ${count} final ideas.`,
+            'Rewrite any abstract candidate. Keep diverse mechanics.',
+            'Every final idea needs filmable hook + concreteAction + specific payoff.',
+            'CANDIDATES JSON:',
+            JSON.stringify(candidates.slice(0, candidateN)),
+            baseContext,
+            'Return { "ideas": [ ... exactly N ... ] }',
+            'JSON only.'
+          ].join('\n'),
+          0.55,
+          4000
         );
-        ideas = normalizeIdeasPayload(parsed, count);
-      }
-      // Trim/pad lightly: if more than count, keep first count strong
-      ideas = ideas.filter((x) => !isWeakIdea(x));
-      if (ideas.length > count) ideas = ideas.slice(0, count);
-      // If still short after filter, keep original normalized (better than empty)
-      if (ideas.length < count) {
-        const all = normalizeIdeasPayload(parsed, count);
-        for (const x of all) {
-          if (ideas.length >= count) break;
-          if (!ideas.find((y) => y.title === x.title)) ideas.push(x);
+        const refined = normalizeIdeasPayload(stageB);
+        if (refined.length) {
+          selected = selectDiverse(refined.concat(selected), count);
         }
       }
-      ideas = ideas.slice(0, count).map((x, i) => ({ ...x, id: i + 1 }));
+
+      // Final pad from candidates if still short
+      if (selected.length < count) {
+        for (const c of candidates) {
+          if (selected.length >= count) break;
+          if (!selected.find((x) => x.title === c.title)) selected.push(c);
+        }
+      }
+
+      selected = selected.slice(0, count).map((x, i) => ({ ...x, id: i + 1 }));
+      const weakFinal = selected.filter(isWeakIdea).length;
+      console.log('[script-generate] final', selected.length, 'weak', weakFinal);
+
       return res.json({
         ok: true,
         mode: 'ideas',
         language,
         requestedCount: count,
-        result: { mode: 'ideas', count: ideas.length, ideas },
-        engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini'
+        quality: { candidates: candidates.length, weakRemaining: weakFinal },
+        result: { mode: 'ideas', count: selected.length, ideas: selected },
+        engine: model
       });
     }
 
-    // SCRIPT mode — normalize scenes
-    if (!parsed.scenes && Array.isArray(parsed.script_table)) {
-      parsed.scenes = parsed.script_table.map((row, i) => ({
+    // SCRIPT mode — single focused generation
+    const scriptParsed = await chatJson(
+      SCRIPTWRITER_PROMPT,
+      [
+        'MODE: SCRIPT — one full shoot-ready script',
+        'Keep the given idea genre and central twist. Do not invent a different story.',
+        'Scenes with startSec/endSec covering full duration. Exact dialogue. Filmable shots.',
+        baseContext,
+        'Return script JSON with scenes[]. JSON only.'
+      ].join('\n'),
+      0.7,
+      3200
+    );
+
+    if (!scriptParsed.scenes && Array.isArray(scriptParsed.script_table)) {
+      scriptParsed.scenes = scriptParsed.script_table.map((row, i) => ({
         startSec: i * 3,
         endSec: (i + 1) * 3,
         shot: row.visual || row.shot || '',
@@ -1685,12 +1793,13 @@ FORBIDDEN: creativity quiz, guaranteed views, invented UI buttons, fake case stu
         edit: row.edit || ''
       }));
     }
+
     res.json({
       ok: true,
       mode: 'script',
       language,
-      result: parsed,
-      engine: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini'
+      result: scriptParsed,
+      engine: model
     });
   } catch (err) {
     console.error('[script-generate]', err.message);
